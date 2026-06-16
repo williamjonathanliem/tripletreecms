@@ -90,7 +90,7 @@ create table if not exists attendance (
 -- Class feedback per session
 create table if not exists class_feedback (
   id uuid primary key default gen_random_uuid(),
-  session_id uuid references class_sessions(id) on delete cascade not null,
+  class_id uuid references classes(id) on delete cascade not null,
   teacher_id uuid references teachers(id) on delete cascade not null,
   how_was_class text not null,
   topics_covered text not null,
@@ -188,3 +188,12 @@ create or replace trigger on_auth_user_created
 -- alter table classes add column if not exists schedule_day text;
 -- alter table classes add column if not exists schedule_time time;
 -- Then re-run the create table + RLS blocks above.
+--
+--
+-- ─── FIX: class_feedback.session_id → class_id ──────────────────────────────
+-- If you already ran the schema with session_id, run this migration:
+--
+-- alter table class_feedback drop constraint if exists class_feedback_session_id_fkey;
+-- alter table class_feedback rename column session_id to class_id;
+-- alter table class_feedback add constraint class_feedback_class_id_fkey
+--   foreign key (class_id) references classes(id) on delete cascade;
