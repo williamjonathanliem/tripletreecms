@@ -62,7 +62,7 @@ export default async function DashboardPage() {
     supabase.from('trial_students').select('*', { count: 'exact', head: true }).eq('teacher_id', user.id).eq('outcome', 'pending'),
     supabase.from('class_sessions').select('*, class:classes(id, tier, branch)').eq('teacher_id', user.id).eq('session_date', today).order('session_time'),
     supabase.from('students').select('id, name, tier, branch, module_current, module_total').eq('teacher_id', user.id).order('created_at', { ascending: false }).limit(5),
-    supabase.from('class_feedback').select('*, session:class_sessions(session_date, session_time, class:classes(tier, branch))').eq('teacher_id', user.id).order('created_at', { ascending: false }).limit(3),
+    supabase.from('class_feedback').select('*, class:classes(tier, branch)').eq('teacher_id', user.id).order('created_at', { ascending: false }).limit(3),
     supabase.from('class_sessions').select('id').eq('teacher_id', user.id).gte('session_date', weekStart),
   ])
 
@@ -159,9 +159,9 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {recentFeedback.map(fb => {
-                  const sess = fb.session as { session_date?: string; class?: { tier?: string; branch?: string } } | null
-                  const tier = sess?.class?.tier ?? ''
-                  const date = sess?.session_date ?? ''
+                  const cls = fb.class as { tier?: string; branch?: string } | null
+                  const tier = cls?.tier ?? ''
+                  const branch = cls?.branch ?? ''
                   const color = TIER_COLORS[tier] || '#6B7280'
                   return (
                     <div key={fb.id} className="p-3 rounded-xl bg-gray-50">
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
                           {tier}
                         </span>
-                        <span className="text-xs text-gray-400">{date}</span>
+                        {branch && <span className="text-xs text-gray-400">{branch}</span>}
                       </div>
                       <p className="text-sm text-gray-600 line-clamp-2">{fb.how_was_class}</p>
                     </div>

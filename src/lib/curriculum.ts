@@ -31,11 +31,7 @@
     'Intelligence Storm Build',
     'Python + C Programming',
     'AI Vision Module',
-    'MIT Day of AI',
-    'IBM SkillsBuild',
-    'Competition Prep',
     'Capstone + Showcase',
-    '[Shared] Python Intro to AI + Web App',
   ],
   'Creative Junior': [
     'Intro to Creative Coding',
@@ -51,7 +47,6 @@
     'Prompt Engineering',
     'Generative AI — Midjourney + Hugging Face',
     'Creative Capstone',
-    '[Shared] Python Intro to AI + Web App',
   ],
   'Specialist Junior': [
     'Introduction + CS Concepts',
@@ -68,7 +63,8 @@
     'scikit-learn',
     'Hugging Face',
     'Web Dev — JS + Flask',
+    'MIT Day of AI',
+    'IBM SkillsBuild',
     'Capstone Project',
-    '[Shared] Python Intro to AI + Web App',
   ],
 }

@@ -60,13 +60,21 @@ export function AddClassDialog() {
     setSubmitting(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSubmitting(false); return }
+    const payload = { ...data, teacher_id: user.id }
+    console.log('[AddClass] payload:', payload)
     const { data: cls, error } = await supabase
-      .from('classes').insert({ ...data, teacher_id: user.id }).select().single()
-    if (error || !cls) { toast.error('Failed to create class'); setSubmitting(false); return }
+      .from('classes').insert(payload).select().single()
+    if (error || !cls) {
+      console.error('[AddClass] insert error:', error)
+      toast.error(`Failed: ${error?.message ?? 'no data returned'}`)
+      setSubmitting(false)
+      return
+    }
     if (selectedIds.size > 0) {
-      await supabase.from('class_students').insert(
+      const { error: rosterError } = await supabase.from('class_students').insert(
         Array.from(selectedIds).map(student_id => ({ class_id: cls.id, student_id }))
       )
+      if (rosterError) console.error('[AddClass] roster error:', rosterError)
     }
     toast.success('Class created')
     setSubmitting(false)
@@ -89,9 +97,16 @@ export function AddClassDialog() {
     setSubmitting(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSubmitting(false); return }
+    const payload = { ...data, teacher_id: user.id }
+    console.log('[AddClass] direct payload:', payload)
     const { data: cls, error } = await supabase
-      .from('classes').insert({ ...data, teacher_id: user.id }).select().single()
-    if (error || !cls) { toast.error('Failed to create class'); setSubmitting(false); return }
+      .from('classes').insert(payload).select().single()
+    if (error || !cls) {
+      console.error('[AddClass] direct insert error:', error)
+      toast.error(`Failed: ${error?.message ?? 'no data returned'}`)
+      setSubmitting(false)
+      return
+    }
     toast.success('Class created')
     setSubmitting(false)
     handleClose(false)

@@ -10,14 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createClient } from '@/lib/supabase/client'
 import { feedbackSchema, type FeedbackInput } from '@/lib/validations'
 
-interface SessionOption {
+interface ClassOption {
   id: string
-  session_date: string
-  session_time: string
-  class: { id: string; tier: string; branch: string } | null
+  tier: string
+  branch: string
+  schedule_day: string | null
+  schedule_time: string | null
 }
 
 const STEP_COLOR = '#1E8449'
+
+function classLabel(c: ClassOption) {
+  return `${c.tier} · ${c.branch}${c.schedule_day ? ` · ${c.schedule_day}` : ''}`
+}
 
 function Step({ n, label, optional }: { n: number; label: string; optional?: boolean }) {
   return (
@@ -36,19 +41,22 @@ function Step({ n, label, optional }: { n: number; label: string; optional?: boo
 
 const textareaBase = "w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#1E8449] focus:bg-white transition-colors"
 
-export function FeedbackForm({ sessions, defaultSessionId }: { sessions: SessionOption[]; defaultSessionId?: string }) {
+export function FeedbackForm({ classes, defaultClassId }: { classes: ClassOption[]; defaultClassId?: string }) {
   const router = useRouter()
   const supabase = createClient()
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } =
     useForm<FeedbackInput>({
       resolver: zodResolver(feedbackSchema),
-      defaultValues: { class_id: defaultSessionId ?? '', how_was_class: '', topics_covered: '', other_comments: '' },
+      defaultValues: { class_id: defaultClassId ?? '', how_was_class: '', topics_covered: '', other_comments: '' },
     })
 
   useEffect(() => {
-    if (defaultSessionId) setValue('class_id', defaultSessionId)
-  }, [defaultSessionId, setValue])
+    if (defaultClassId) setValue('class_id', defaultClassId)
+  }, [defaultClassId, setValue])
+
+  const watchedClassId = watch('class_id')
+  const selectedClass = classes.find(c => c.id === watchedClassId)
 
   async function onSubmit(data: FeedbackInput) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -66,32 +74,31 @@ export function FeedbackForm({ sessions, defaultSessionId }: { sessions: Session
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-50">
         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">New Entry</p>
-        <h2 className="text-base font-bold text-gray-900 mt-0.5">Log a Session</h2>
+        <h2 className="text-base font-bold text-gray-900 mt-0.5">Log a Class</h2>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
-        {/* Session selector */}
+        {/* Class selector */}
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
               style={{ background: STEP_COLOR }}>
               0
             </div>
-            <span className="text-sm font-semibold text-gray-800">Which session?</span>
+            <span className="text-sm font-semibold text-gray-800">Which class?</span>
           </div>
-          <Select value={watch('class_id')} onValueChange={(v: string | null) => { if (v) setValue('class_id', v, { shouldValidate: true }) }}>
+          <Select value={watchedClassId} onValueChange={(v: string | null) => { if (v) setValue('class_id', v, { shouldValidate: true }) }}>
             <SelectTrigger className="bg-gray-50 border-gray-200 rounded-xl h-11 focus:border-[#1E8449] focus:ring-0 focus:outline-none">
-              <SelectValue placeholder="Select a session…" />
+              {selectedClass
+                ? <span className="text-sm text-gray-800">{classLabel(selectedClass)}</span>
+                : <span className="text-sm text-gray-400">Select a class…</span>}
             </SelectTrigger>
             <SelectContent>
-              {(sessions ?? []).map(s => {
-                const cls = s.class as { tier: string; branch: string } | null
-                return (
-                  <SelectItem key={s.id} value={s.id}>
-                    {cls?.tier ?? '—'} · {cls?.branch ?? '—'} · {s.session_date} {s.session_time.slice(0, 5)}
-                  </SelectItem>
-                )
-              })}
+              {classes.length === 0
+                ? <div className="py-4 text-center text-sm text-gray-400">No classes yet</div>
+                : classes.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{classLabel(c)}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
           {errors.class_id && <p className="text-xs text-red-500 mt-1.5">{errors.class_id.message}</p>}
@@ -99,7 +106,6 @@ export function FeedbackForm({ sessions, defaultSessionId }: { sessions: Session
 
         <div className="border-t border-gray-50" />
 
-        {/* How was the class */}
         <div>
           <Step n={1} label="How was the class?" />
           <textarea
@@ -111,7 +117,6 @@ export function FeedbackForm({ sessions, defaultSessionId }: { sessions: Session
           {errors.how_was_class && <p className="text-xs text-red-500 mt-1.5">{errors.how_was_class.message}</p>}
         </div>
 
-        {/* Topics covered */}
         <div>
           <Step n={2} label="Topics Covered" />
           <textarea
@@ -123,7 +128,6 @@ export function FeedbackForm({ sessions, defaultSessionId }: { sessions: Session
           {errors.topics_covered && <p className="text-xs text-red-500 mt-1.5">{errors.topics_covered.message}</p>}
         </div>
 
-        {/* Other comments */}
         <div>
           <Step n={3} label="Other Comments" optional />
           <textarea
@@ -137,10 +141,8 @@ export function FeedbackForm({ sessions, defaultSessionId }: { sessions: Session
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-60"
           style={{ background: '#1E8449' }}
-          onMouseEnter={e => { if (!isSubmitting) (e.currentTarget as HTMLElement).style.background = '#196F3D' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#1E8449' }}
         >
           {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
           Save Feedback

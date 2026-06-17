@@ -102,15 +102,7 @@ export function ClassLogView({ classes, allLogs, defaultClassId, defaultTab }: P
       </div>
 
       {tab === 'log' ? (
-        <FeedbackForm
-          sessions={classes.map(c => ({
-            id: c.id,
-            session_date: c.schedule_day ?? '',
-            session_time: c.schedule_time ?? '',
-            class: { id: c.id, tier: c.tier, branch: c.branch },
-          }))}
-          defaultSessionId={defaultClassId}
-        />
+        <FeedbackForm classes={classes} defaultClassId={defaultClassId} />
       ) : (
         <div className="space-y-3">
           {allLogs.length === 0 ? (

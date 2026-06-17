@@ -55,7 +55,6 @@ export function StudentForm({ student, onClose }: Props) {
   })
 
   const watchedTier = watch('tier')
-  const moduleTotal = CURRICULUM[watchedTier]?.length ?? 1
 
   async function onSubmit(data: StudentInput) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -121,12 +120,6 @@ export function StudentForm({ student, onClose }: Props) {
           <Label>Branch</Label>
           <Input {...register('branch')} placeholder="e.g. PJ, Subang" />
           {errors.branch && <p className="text-xs text-red-500">{errors.branch.message}</p>}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Current Module</Label>
-          <Input type="number" {...register('module_current')} min={0} max={moduleTotal} />
-          {errors.module_current && <p className="text-xs text-red-500">{errors.module_current.message}</p>}
         </div>
 
         <div className="space-y-1.5">
