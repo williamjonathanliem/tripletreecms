@@ -39,3 +39,6 @@ next-env.d.ts
 /public/workbox-*.js
 /public/worker-*.js
 /public/workbox-*.js.map
+
+#Supabase
+/supabase

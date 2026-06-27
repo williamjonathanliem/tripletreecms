@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -81,7 +81,7 @@ function toWhatsApp(phone: string, name: string, lang: string) {
   const digits = phone.replace(/\D/g, '')
   const intl = digits.startsWith('60') ? digits : `60${digits.replace(/^0/, '')}`
   const msg = lang === 'zh'
-    ? `您好，我想联系您关于${name}在Triple Tree的学习进度。`
+    ? `µé¿σÑ╜∩╝îµêæµâ│Φüöτ│╗µé¿σà│Σ║Ä${name}σ£¿Triple TreeτÜäσ¡ªΣ╣áΦ┐¢σ║ªπÇé`
     : `Hi, I'm reaching out regarding ${name}'s progress at Triple Tree.`
   return `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`
 }
@@ -95,7 +95,7 @@ function Avatar({ name, color, size = 10 }: { name: string; color: string; size?
   )
 }
 
-// ─── Home Tab ────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Home Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function HomeTab({ students, onTab, t }: { students: EnrichedChild[]; onTab: (tab: string) => void; t: PortalT }) {
   const quickLinks = [
@@ -126,7 +126,7 @@ function HomeTab({ students, onTab, t }: { students: EnrichedChild[]; onTab: (ta
                 <Avatar name={child.name} color={color} size={12} />
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-black text-gray-900">{child.name}</h2>
-                  <p className="text-sm text-gray-400">{child.tier} · {child.branch} · {t.age_label} {child.age}</p>
+                  <p className="text-sm text-gray-400">{child.tier} ┬╖ {child.branch} ┬╖ {t.age_label} {child.age}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {subMeta && (
                       <span className="text-xs font-bold px-2.5 py-0.5 rounded-full"
@@ -146,7 +146,7 @@ function HomeTab({ students, onTab, t }: { students: EnrichedChild[]; onTab: (ta
                 <button onClick={() => onTab('attendance')}
                   className="rounded-xl p-3 text-center border border-transparent hover:border-gray-200 transition-all"
                   style={{ background: '#f8f9fb' }}>
-                  <p className="text-xl font-black" style={{ color }}>{attPct !== null ? `${attPct}%` : '—'}</p>
+                  <p className="text-xl font-black" style={{ color }}>{attPct !== null ? `${attPct}%` : 'ΓÇö'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{t.stat_attendance}</p>
                 </button>
                 <button onClick={() => onTab('progress')}
@@ -169,7 +169,7 @@ function HomeTab({ students, onTab, t }: { students: EnrichedChild[]; onTab: (ta
                   <CalendarDays className="w-4 h-4 shrink-0" style={{ color }} />
                   <p className="text-sm font-semibold" style={{ color }}>
                     {t.every_prefix} {child.schedule_day}
-                    {child.schedule_time ? ` · ${formatTime(child.schedule_time)}` : ''}
+                    {child.schedule_time ? ` ┬╖ ${formatTime(child.schedule_time)}` : ''}
                   </p>
                 </div>
               )}
@@ -194,7 +194,7 @@ function HomeTab({ students, onTab, t }: { students: EnrichedChild[]; onTab: (ta
   )
 }
 
-// ─── Schedule Tab ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Schedule Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function ScheduleTab({ students, t, lang }: { students: EnrichedChild[]; t: PortalT; lang: string }) {
   const locale = lang === 'zh' ? 'zh-CN' : 'en-MY'
@@ -251,7 +251,7 @@ function ScheduleTab({ students, t, lang }: { students: EnrichedChild[]; t: Port
                         { label: t.label_teacher, value: child.teacher_name },
                         { label: t.label_branch,  value: child.branch },
                         { label: t.label_tier,    value: child.tier, colored: true },
-                        { label: t.label_enrolled, value: child.enrolled_date ? formatDate(child.enrolled_date, locale) : '—' },
+                        { label: t.label_enrolled, value: child.enrolled_date ? formatDate(child.enrolled_date, locale) : 'ΓÇö' },
                       ].map(({ label, value, colored }) => (
                         <div key={label} className="rounded-xl px-3.5 py-3 bg-gray-50">
                           <p className="text-xs text-gray-400 font-medium">{label}</p>
@@ -286,7 +286,7 @@ function ScheduleTab({ students, t, lang }: { students: EnrichedChild[]; t: Port
   )
 }
 
-// ─── Progress Tab ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Progress Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function ProgressTab({ students, t, lang }: { students: EnrichedChild[]; t: PortalT; lang: string }) {
   const [downloading, setDownloading] = useState<string | null>(null)
@@ -302,7 +302,7 @@ function ProgressTab({ students, t, lang }: { students: EnrichedChild[]; t: Port
       branch: child.branch,
       subject: child.subject,
       teacherName: child.teacher_name,
-      enrolledDate: child.enrolled_date ? formatDate(child.enrolled_date, locale) : '—',
+      enrolledDate: child.enrolled_date ? formatDate(child.enrolled_date, locale) : 'ΓÇö',
       moduleCurrent: child.module_current,
       moduleTotal: child.module_total,
       modules: child.modules,
@@ -337,14 +337,14 @@ function ProgressTab({ students, t, lang }: { students: EnrichedChild[]; t: Port
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-gray-900">{child.name}</h3>
                     <p className="text-xs text-gray-400">
-                      {child.tier} · {t.enrolled_prefix} {child.enrolled_date ? formatDate(child.enrolled_date, locale) : '—'}
+                      {child.tier} ┬╖ {t.enrolled_prefix} {child.enrolled_date ? formatDate(child.enrolled_date, locale) : 'ΓÇö'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => handleDownload(child)} disabled={downloading === child.id}
                       className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50">
                       <FileDown className="w-3 h-3" />
-                      {downloading === child.id ? '…' : 'PDF'}
+                      {downloading === child.id ? 'ΓÇª' : 'PDF'}
                     </button>
                     {isComplete ? (
                       <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700">
@@ -382,7 +382,7 @@ function ProgressTab({ students, t, lang }: { students: EnrichedChild[]; t: Port
                             : current
                               ? { background: color, color: 'white' }
                               : { background: '#e5e7eb', color: '#9ca3af' }}>
-                          {done ? '✓' : idx + 1}
+                          {done ? 'Γ£ô' : idx + 1}
                         </div>
                         <p className={`text-sm flex-1 ${done ? 'text-gray-400 line-through' : current ? 'font-bold' : 'text-gray-500'}`}
                           style={current ? { color } : {}}>
@@ -407,7 +407,7 @@ function ProgressTab({ students, t, lang }: { students: EnrichedChild[]; t: Port
   )
 }
 
-// ─── Attendance Tab ───────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Attendance Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function AttendanceTab({ students, t }: { students: EnrichedChild[]; t: PortalT }) {
   const [selected, setSelected] = useState(students[0]?.id ?? '')
@@ -449,7 +449,7 @@ function AttendanceTab({ students, t }: { students: EnrichedChild[]; t: PortalT 
           <div className="rounded-2xl p-5 text-white"
             style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)` }}>
             <p className="text-white/70 text-sm font-medium">{child.name}</p>
-            <p className="text-5xl font-black mt-2">{attPct !== null ? `${attPct}%` : '—'}</p>
+            <p className="text-5xl font-black mt-2">{attPct !== null ? `${attPct}%` : 'ΓÇö'}</p>
             <p className="text-white/70 text-xs mt-2">
               {child.attendance.present} {t.of_label} {child.attendance.total} {t.sessions_suffix}
             </p>
@@ -494,11 +494,11 @@ function AttendanceTab({ students, t }: { students: EnrichedChild[]; t: PortalT 
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.dot }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800">
-                        {rec.session?.session_date ?? '—'}
+                        {rec.session?.session_date ?? 'ΓÇö'}
                       </p>
                       <p className="text-xs text-gray-400">
                         {rec.session?.session_time ? formatTime(rec.session.session_time) : ''}
-                        {rec.class?.tier ? ` · ${rec.class.tier}` : ''}
+                        {rec.class?.tier ? ` ┬╖ ${rec.class.tier}` : ''}
                       </p>
                       {rec.note && <p className="text-xs text-gray-400 italic mt-0.5">{rec.note}</p>}
                       {rec.session?.notes && (
@@ -523,7 +523,7 @@ function AttendanceTab({ students, t }: { students: EnrichedChild[]; t: PortalT 
   )
 }
 
-// ─── Fees Tab ─────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Fees Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function FeesTab({ students, t, lang }: { students: EnrichedChild[]; t: PortalT; lang: string }) {
   const feeCfg = getFeeCfg(t)
@@ -547,7 +547,7 @@ function FeesTab({ students, t, lang }: { students: EnrichedChild[]; t: PortalT;
                   <Avatar name={child.name} color={color} size={11} />
                   <div>
                     <h3 className="font-black text-gray-900">{child.name}</h3>
-                    <p className="text-xs text-gray-400">{child.tier} · {child.branch}</p>
+                    <p className="text-xs text-gray-400">{child.tier} ┬╖ {child.branch}</p>
                   </div>
                 </div>
 
@@ -606,7 +606,7 @@ function FeesTab({ students, t, lang }: { students: EnrichedChild[]; t: PortalT;
   )
 }
 
-// ─── Settings Tab ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Settings Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function SettingsTab({ parentEmail, lang, toggle, onSignOut, signingOut, t }: {
   parentEmail: string; lang: string; toggle: () => void; onSignOut: () => void; signingOut: boolean; t: PortalT
@@ -649,7 +649,7 @@ function SettingsTab({ parentEmail, lang, toggle, onSignOut, signingOut, t }: {
             </div>
           </div>
           <span className="text-sm font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600">
-            {lang === 'en' ? '中文' : 'EN'}
+            {lang === 'en' ? 'Σ╕¡µûç' : 'EN'}
           </span>
         </button>
       </div>
@@ -680,7 +680,7 @@ function SettingsTab({ parentEmail, lang, toggle, onSignOut, signingOut, t }: {
   )
 }
 
-// ─── Main Export ──────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Main Export ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 export function ParentDashboard({ students, parentEmail }: {
   students: EnrichedChild[]; parentEmail: string
@@ -715,7 +715,7 @@ export function ParentDashboard({ students, parentEmail }: {
   return (
     <div className="min-h-screen bg-gray-50 lg:flex">
 
-      {/* ── Desktop sidebar ── */}
+      {/* ΓöÇΓöÇ Desktop sidebar ΓöÇΓöÇ */}
       <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-white border-r border-gray-100 min-h-screen sticky top-0">
         <div className="px-6 py-5 border-b border-gray-50">
           <div className="flex items-center gap-3">
@@ -756,7 +756,7 @@ export function ParentDashboard({ students, parentEmail }: {
         </div>
       </aside>
 
-      {/* ── Main content ── */}
+      {/* ΓöÇΓöÇ Main content ΓöÇΓöÇ */}
       <div className="flex-1 flex flex-col min-h-screen">
 
         {/* Mobile header */}
@@ -811,7 +811,7 @@ export function ParentDashboard({ students, parentEmail }: {
         </main>
       </div>
 
-      {/* ── Mobile bottom nav ── */}
+      {/* ΓöÇΓöÇ Mobile bottom nav ΓöÇΓöÇ */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 shadow-lg">
         <div className="flex items-center justify-around px-1 py-2">
           {TABS.map(({ id, label, Icon }) => {
