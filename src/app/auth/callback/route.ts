@@ -38,12 +38,16 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.redirect(`${origin}/parent-login`)
 
+  // If a specific next page was requested (e.g. /set-password), honour it for everyone
+  if (next && next.startsWith('/') && next !== '/portal') {
+    return NextResponse.redirect(`${origin}${next}`)
+  }
+
   const { data: teacher } = await supabase
     .from('teachers')
     .select('id')
     .eq('id', user.id)
     .maybeSingle()
 
-  const destination = teacher ? '/dashboard' : (next.startsWith('/') ? next : '/portal')
-  return NextResponse.redirect(`${origin}${destination}`)
+  return NextResponse.redirect(`${origin}${teacher ? '/dashboard' : '/portal'}`)
 }
