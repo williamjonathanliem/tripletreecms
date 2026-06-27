@@ -33,35 +33,23 @@ export async function POST(request: Request) {
   const { name, email, role, subjects } = await request.json()
   if (!name || !email) return NextResponse.json({ error: 'Name and email are required' }, { status: 400 })
 
-  // Send invite email via Supabase Auth
-  const inviteRes = await fetch(`${SUPABASE_URL}/auth/v1/invite`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SERVICE_KEY,
-      'Authorization': `Bearer ${SERVICE_KEY}`,
-    },
-    body: JSON.stringify({
-      email,
-      redirect_to: `${APP_URL}/set-password`,
-    }),
-  })
-
-  const inviteBody = await inviteRes.json().catch(() => ({}))
-
-  if (!inviteRes.ok) {
-    return NextResponse.json(
-      { error: inviteBody.msg ?? inviteBody.message ?? `Invite failed (${inviteRes.status})` },
-      { status: inviteRes.status }
-    )
-  }
-
-  const invited = inviteBody
-  const userId: string = invited.id
-
+  // Send invite email via Supabase Admin SDK
   const admin = createAdminClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${APP_URL}/set-password`,
+  })
+
+  if (inviteError) {
+    return NextResponse.json(
+      { error: inviteError.message ?? 'Invite failed' },
+      { status: 400 }
+    )
+  }
+
+  const userId: string = invited.user.id
 
   const { error: dbError } = await admin.from('teachers').upsert(
     { id: userId, name, email, role, subjects, active: true },
