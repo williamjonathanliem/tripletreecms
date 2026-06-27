@@ -1,11 +1,10 @@
-import { createServerClient } from '@supabase/ssr'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getAppUrl } from '@/lib/app-url'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const APP_URL      = getAppUrl()
 
 export async function POST(request: Request) {
@@ -33,23 +32,17 @@ export async function POST(request: Request) {
   const { name, email, role, subjects } = await request.json()
   if (!name || !email) return NextResponse.json({ error: 'Name and email are required' }, { status: 400 })
 
-  // Send invite email via Supabase Admin SDK
-  const admin = createAdminClient(SUPABASE_URL, SERVICE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const admin = createAdminClient()
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${APP_URL}/set-password`,
   })
 
   if (inviteError) {
-    return NextResponse.json(
-      { error: inviteError.message ?? 'Invite failed' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: inviteError.message }, { status: 400 })
   }
 
-  const userId: string = invited.user.id
+  const userId = invited.user.id
 
   const { error: dbError } = await admin.from('teachers').upsert(
     { id: userId, name, email, role, subjects, active: true },
