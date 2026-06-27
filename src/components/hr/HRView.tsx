@@ -1,0 +1,103 @@
+'use client'
+
+import { TeachersTab } from './TeachersTab'
+import { SubjectsTab } from './SubjectsTab'
+import { OverviewTab } from './OverviewTab'
+import { AnnouncementsTab } from './AnnouncementsTab'
+import { AnalyticsTab } from './AnalyticsTab'
+import { AvailabilityTab } from './AvailabilityTab'
+import { FormSubmissionsTab } from './FormSubmissionsTab'
+import { BootcampConfirmationTab } from './BootcampConfirmationTab'
+import { ScheduleCalendar } from '@/components/schedule/ScheduleCalendar'
+import { HRPaymentsTab } from './HRPaymentsTab'
+import { ParentsTab } from './ParentsTab'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
+import type { Teacher, ScheduleEvent, Subject, Announcement } from '@/types'
+import type { HRStudent } from './HRPaymentsTab'
+
+interface Props {
+  defaultTab: string
+  teachers: Teacher[]
+  classes: { id: string; tier: string; branch: string; subject: Subject }[]
+  events: ScheduleEvent[]
+  announcements: Announcement[]
+  teacherSubjectCounts: Record<Subject, number>
+  classSubjectCounts: Record<Subject, number>
+  totalStudents: number
+  upcomingThisWeek: number
+  currentUserName?: string
+  hrStudents: HRStudent[]
+}
+
+export function HRView({
+  defaultTab, teachers, classes, events, announcements,
+  teacherSubjectCounts, classSubjectCounts,
+  totalStudents, upcomingThisWeek, currentUserName, hrStudents,
+}: Props) {
+  const tab = defaultTab || 'overview'
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang].hr
+
+  const tabKey = `tab_${tab}` as keyof typeof t
+  const tabSubKey = `tab_${tab}_sub` as keyof typeof t
+  const heading = t[tabKey] ?? t.tab_overview
+  const headingSub = t[tabSubKey] ?? t.tab_overview_sub
+
+  const teachersForCalendar = teachers.map(tc => ({
+    id: tc.id, name: tc.name, subjects: tc.subjects,
+  }))
+
+  return (
+    <div>
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>
+        <p className="text-sm text-gray-400 mt-0.5">{headingSub}</p>
+      </div>
+      {tab === 'overview' && (
+        <OverviewTab
+          totalTeachers={teachers.length}
+          totalStudents={totalStudents}
+          totalClasses={classes.length}
+          upcomingThisWeek={upcomingThisWeek}
+          teacherSubjectCounts={teacherSubjectCounts}
+          onSwitchTab={() => {}}
+        />
+      )}
+
+      {tab === 'teachers' && <TeachersTab teachers={teachers} />}
+
+      {tab === 'schedule' && (
+        <ScheduleCalendar
+          initialEvents={events}
+          teachers={teachersForCalendar}
+          classes={classes}
+          canEdit={true}
+        />
+      )}
+
+      {tab === 'availability' && <AvailabilityTab teachers={teachers} />}
+
+      {tab === 'subjects' && (
+        <SubjectsTab
+          teacherSubjectCounts={teacherSubjectCounts}
+          classSubjectCounts={classSubjectCounts}
+        />
+      )}
+
+      {tab === 'announcements' && <AnnouncementsTab announcements={announcements} />}
+
+      {tab === 'analytics' && <AnalyticsTab />}
+
+      {tab === 'submissions' && <FormSubmissionsTab teachers={teachers} />}
+
+      {tab === 'confirmation' && <BootcampConfirmationTab currentUserName={currentUserName} />}
+
+      {tab === 'payments' && (
+        <HRPaymentsTab students={hrStudents} hrName={currentUserName ?? 'HR'} />
+      )}
+
+      {tab === 'parents' && <ParentsTab />}
+    </div>
+  )
+}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ForgotPasswordInput>({ resolver: zodResolver(forgotPasswordSchema) })
+  } = useForm<ForgotPasswordInput>({ resolver: standardSchemaResolver(forgotPasswordSchema) })
 
   async function onSubmit(data: ForgotPasswordInput) {
     await supabase.auth.resetPasswordForEmail(data.email, {

@@ -1,27 +1,21 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { LayoutGrid, GitBranch, ChevronDown, Trophy, FlaskConical } from 'lucide-react'
-import { CURRICULUM_DATA, TRIAL_CLASS, TAG_STYLES, SHARED_MODULE, type TierData } from '@/lib/curriculumData'
+import { useState } from 'react'
+import { LayoutGrid, GitBranch, ChevronDown, Trophy } from 'lucide-react'
+import { CURRICULUM_DATA, TRIAL_CLASS, TAG_STYLES, type TierData } from '@/lib/curriculumData'
 import { CurriculumMindmap } from './CurriculumMindmap'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
-const CATEGORY_CONFIG: { label: string; color: string; tiers: string[] }[] = [
-  { label: 'Foundation', color: '#117A65', tiers: ['Coding Explorers', 'Junior Coders'] },
-  { label: 'Robotics', color: '#1A5276', tiers: ['Robotics Junior', 'Robotics Advanced'] },
-  { label: 'Creative', color: '#6C3483', tiers: ['Creative Junior', 'Creative Advanced'] },
-  { label: 'Specialist', color: '#1E8449', tiers: ['Specialist Junior', 'Specialist Advanced'] },
+const CATEGORY_CONFIG: { key: keyof typeof CMS_T['en']['curriculum']; color: string; tiers: string[] }[] = [
+  { key: 'track_foundation', color: '#117A65', tiers: ['Coding Explorers', 'Junior Coders'] },
+  { key: 'track_robotics',   color: '#1A5276', tiers: ['Robotics Junior', 'Robotics Advanced'] },
+  { key: 'track_creative',   color: '#6C3483', tiers: ['Creative Junior', 'Creative Advanced'] },
+  { key: 'track_specialist', color: '#1E8449', tiers: ['Specialist Junior', 'Specialist Advanced'] },
 ]
 
 function TierCard({ tier }: { tier: TierData }) {
   const [open, setOpen] = useState(false)
-  const listRef = useRef<HTMLDivElement>(null)
-  const [maxHeight, setMaxHeight] = useState('0px')
-
-  useEffect(() => {
-    if (listRef.current) {
-      setMaxHeight(open ? `${listRef.current.scrollHeight}px` : '0px')
-    }
-  }, [open])
 
   function tagColor(tag: string) {
     return TAG_STYLES[tag] ?? { text: '#6B7280', bg: '#F3F4F6' }
@@ -35,7 +29,6 @@ function TierCard({ tier }: { tier: TierData }) {
     return r * 0.299 + g * 0.587 + b * 0.114 > 160
   }
 
-  const lightBg = tier.color + '15'
   const showcaseBg = tier.color + '12'
   const headerTextColor = isLight(tier.color) ? '#1F2937' : '#FFFFFF'
 
@@ -56,21 +49,22 @@ function TierCard({ tier }: { tier: TierData }) {
               {tier.ages}
             </span>
           </div>
-          <div className="flex items-center gap-3 mt-1" style={{ color: headerTextColor }}>
-            <span className="text-xs opacity-75">{tier.sessions} sessions · {tier.duration}</span>
+          <div className="flex items-center gap-3 mt-1 flex-wrap" style={{ color: headerTextColor }}>
+            <span className="text-xs opacity-75">
+              {tier.sessions} sessions{tier.sessionsNote ? <span className="opacity-70"> {tier.sessionsNote}</span> : null} · {tier.duration}
+            </span>
             <span className="text-xs opacity-60">{tier.hardware}</span>
           </div>
         </div>
         <ChevronDown
-          className="w-5 h-5 shrink-0 transition-transform duration-250"
+          className="w-5 h-5 shrink-0 transition-transform duration-300"
           style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', color: headerTextColor }}
         />
       </button>
 
       <div
-        ref={listRef}
-        className="transition-all duration-250 overflow-hidden"
-        style={{ maxHeight }}
+        className="transition-all duration-300 ease-in-out overflow-hidden"
+        style={{ maxHeight: open ? '3000px' : '0px' }}
       >
         <div className="p-5">
           <ol className="space-y-1.5">
@@ -117,56 +111,32 @@ function TierCard({ tier }: { tier: TierData }) {
 }
 
 function TrackFlow() {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang].curriculum
+
   return (
     <div className="flex items-center justify-center gap-3 py-3 px-4 bg-gray-50 rounded-2xl text-xs text-gray-500">
-      <span className="font-semibold text-gray-700">Foundation</span>
-      <span className="text-gray-300">(all students)</span>
+      <span className="font-semibold text-gray-700">{t.track_foundation}</span>
+      <span className="text-gray-300">{t.track_all_students}</span>
       <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-gray-300" />
-      <span className="font-semibold text-gray-700">Age 8</span>
+      <span className="font-semibold text-gray-700">{t.track_age}</span>
       <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-gray-300" />
       <span className="flex items-center gap-1">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#1A5276' }} />
-        <span className="font-medium">Robotics</span>
+        <span className="font-medium">{t.track_robotics}</span>
       </span>
       <span className="text-gray-300">·</span>
       <span className="flex items-center gap-1">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#6C3483' }} />
-        <span className="font-medium">Creative</span>
+        <span className="font-medium">{t.track_creative}</span>
       </span>
       <span className="text-gray-300">·</span>
       <span className="flex items-center gap-1">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#1E8449' }} />
-        <span className="font-medium">Specialist</span>
+        <span className="font-medium">{t.track_specialist}</span>
       </span>
       <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-gray-300" />
-      <span className="font-semibold text-gray-700">Advanced</span>
-    </div>
-  )
-}
-
-function SharedModuleBanner() {
-  return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: '#1B3A6B' }}>
-      <div className="px-6 py-5">
-        <div className="flex items-center gap-2 mb-2">
-          <FlaskConical className="w-5 h-5" style={{ color: '#C9A84C' }} />
-          <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: '#C9A84C' }}>
-            Shared Module — All Advanced
-          </h3>
-        </div>
-        <p className="text-sm text-white/90 leading-relaxed mb-3">{SHARED_MODULE.description}</p>
-        <div className="flex flex-wrap gap-2">
-          {SHARED_MODULE.sessions.map(s => (
-            <span
-              key={s}
-              className="text-xs px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.1)', color: '#C9A84C' }}
-            >
-              {s}
-            </span>
-          ))}
-        </div>
-      </div>
+      <span className="font-semibold text-gray-700">{t.track_advanced}</span>
     </div>
   )
 }
@@ -206,42 +176,48 @@ function TrialClassCard() {
 }
 
 function GridView() {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang].curriculum
+
   return (
     <div className="space-y-8">
       <TrackFlow />
 
-      {CATEGORY_CONFIG.map(({ label, color, tiers: tierNames }) => {
+      {CATEGORY_CONFIG.map(({ key, color, tiers: tierNames }) => {
         const tierData = CURRICULUM_DATA.filter(t => tierNames.includes(t.name))
+        const label = t[key] as string
         return (
-          <div key={label}>
+          <div key={key}>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-1 h-5 rounded-full" style={{ backgroundColor: color }} />
               <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{label}</h2>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              {tierData.map(t => (
-                <TierCard key={t.id} tier={t} />
+            <div className="flex flex-col gap-3">
+              {tierData.map(tier => (
+                <TierCard key={tier.id} tier={tier} />
               ))}
             </div>
           </div>
         )
       })}
 
-      <SharedModuleBanner />
       <TrialClassCard />
     </div>
   )
 }
 
 export function CurriculumView() {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang].curriculum
+
   const [view, setView] = useState<'grid' | 'mindmap'>('grid')
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Curriculum Reference</h1>
-          <p className="text-sm text-gray-400 mt-0.5">All tiers and module sequences — read-only</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{t.subtitle}</p>
         </div>
         <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
           <button
@@ -250,7 +226,7 @@ export function CurriculumView() {
               view === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5" /> Grid
+            <LayoutGrid className="w-3.5 h-3.5" /> {t.grid_view}
           </button>
           <button
             onClick={() => setView('mindmap')}
@@ -258,7 +234,7 @@ export function CurriculumView() {
               view === 'mindmap' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <GitBranch className="w-3.5 h-3.5" /> Mindmap
+            <GitBranch className="w-3.5 h-3.5" /> {t.mindmap_view}
           </button>
         </div>
       </div>

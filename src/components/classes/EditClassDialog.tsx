@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Pencil, Loader2, Trash2, AlertTriangle, Check, Users } from 'lucide-react'
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createClient } from '@/lib/supabase/client'
 import { classSchema, type ClassInput } from '@/lib/validations'
 import { TIERS, TIER_COLORS, CLASS_OPTIONS, DAYS, type ClassGroup } from '@/types'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 const labelClass = 'text-xs font-semibold uppercase tracking-wide text-gray-500'
 const inputClass = 'w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-[#1E8449] focus:bg-white transition-colors'
@@ -27,6 +29,9 @@ interface Props {
 }
 
 export function EditClassDialog({ cls, compact }: Props) {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
+
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'info' | 'roster'>('info')
   const [roster, setRoster] = useState<RosterStudent[]>([])
@@ -41,7 +46,7 @@ export function EditClassDialog({ cls, compact }: Props) {
 
   const { register, setValue, watch, reset, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<ClassInput>({
-      resolver: zodResolver(classSchema),
+      resolver: standardSchemaResolver(classSchema),
       defaultValues: {
         tier: cls.tier, branch: cls.branch,
         schedule_day: cls.schedule_day ?? '', schedule_time: cls.schedule_time ?? '09:00',
@@ -130,7 +135,7 @@ export function EditClassDialog({ cls, compact }: Props) {
     <>
       <button onClick={handleOpen}
         className={`flex items-center gap-1.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors ${compact ? 'px-3 py-1.5' : 'px-3 py-2'}`}>
-        <Pencil className="w-3.5 h-3.5" /> Edit
+        <Pencil className="w-3.5 h-3.5" /> {t.common.edit}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -147,12 +152,12 @@ export function EditClassDialog({ cls, compact }: Props) {
 
           {/* Tabs */}
           <div className="flex gap-1 p-1 bg-gray-100 rounded-xl shrink-0">
-            {(['info', 'roster'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
+            {(['info', 'roster'] as const).map(tabKey => (
+              <button key={tabKey} onClick={() => setTab(tabKey)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  tab === tabKey ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}>
-                {t === 'info' ? 'Class Info' : `Roster (${roster.length})`}
+                {tabKey === 'info' ? t.classes.class_info_tab : `${t.classes.roster_tab} (${roster.length})`}
               </button>
             ))}
           </div>
@@ -161,18 +166,18 @@ export function EditClassDialog({ cls, compact }: Props) {
             {tab === 'info' ? (
               <form onSubmit={handleSubmit(saveInfo)} className="space-y-4 pt-1">
                 <div className="space-y-1.5">
-                  <label className={labelClass}>Tier</label>
+                  <label className={labelClass}>{t.classes.tier}</label>
                   <Select value={watch('tier')} onValueChange={v => { if (v) setValue('tier', v, { shouldValidate: true }) }}>
                     <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:ring-0">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>{TIERS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                    <SelectContent>{TIERS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}</SelectContent>
                   </Select>
                   {errors.tier && <p className="text-xs text-red-500">{errors.tier.message}</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className={labelClass}>Class</label>
+                  <label className={labelClass}>{t.classes.class_label}</label>
                   <Select value={watch('branch')} onValueChange={v => { if (v) setValue('branch', v, { shouldValidate: true }) }}>
                     <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:ring-0">
                       <SelectValue />
@@ -184,16 +189,16 @@ export function EditClassDialog({ cls, compact }: Props) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className={labelClass}>Day</label>
+                    <label className={labelClass}>{t.classes.day}</label>
                     <Select value={watch('schedule_day') ?? ''} onValueChange={v => setValue('schedule_day', v ?? undefined)}>
                       <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:ring-0">
-                        <SelectValue placeholder="Select day…" />
+                        <SelectValue placeholder={t.classes.day_placeholder} />
                       </SelectTrigger>
                       <SelectContent>{DAYS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className={labelClass}>Time</label>
+                    <label className={labelClass}>{t.classes.time}</label>
                     <input type="time" {...register('schedule_time')} className={inputClass} />
                   </div>
                 </div>
@@ -203,23 +208,23 @@ export function EditClassDialog({ cls, compact }: Props) {
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
                     style={{ background: '#1E8449' }}>
                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    Save Changes
+                    {t.classes.save_changes}
                   </button>
                   {!confirmDelete ? (
                     <button type="button" onClick={() => setConfirmDelete(true)}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
-                      <Trash2 className="w-4 h-4" /> Delete
+                      <Trash2 className="w-4 h-4" /> {t.classes.delete}
                     </button>
                   ) : (
                     <button type="button" onClick={handleDelete}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors">
-                      <AlertTriangle className="w-4 h-4" /> Confirm Delete
+                      <AlertTriangle className="w-4 h-4" /> {t.classes.confirm_delete}
                     </button>
                   )}
                 </div>
                 {confirmDelete && (
                   <p className="text-xs text-red-500">
-                    This will delete all sessions and attendance records for this class.
+                    {t.classes.delete_warning}
                   </p>
                 )}
               </form>
@@ -232,10 +237,10 @@ export function EditClassDialog({ cls, compact }: Props) {
                 {/* Current roster */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                    Current Roster ({roster.length})
+                    {t.classes.current_roster} ({roster.length})
                   </p>
                   {roster.length === 0 ? (
-                    <p className="text-xs text-gray-400 py-3">No students enrolled yet.</p>
+                    <p className="text-xs text-gray-400 py-3">{t.classes.no_enrolled}</p>
                   ) : (
                     <div className="space-y-1.5">
                       {roster.map(s => (
@@ -250,7 +255,7 @@ export function EditClassDialog({ cls, compact }: Props) {
                           </div>
                           <button onClick={() => removeStudent(s.id)}
                             className="text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
-                            Remove
+                            {t.common.remove}
                           </button>
                         </div>
                       ))}
@@ -259,42 +264,49 @@ export function EditClassDialog({ cls, compact }: Props) {
                 </div>
 
                 {/* Add students */}
-                {available.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                      Add Students
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    {t.classes.add_students}
+                  </p>
+                  {available.length === 0 ? (
+                    <p className="text-xs text-gray-400 py-2">
+                      {t.classes.no_available} <span className="font-semibold">{cls.tier}</span>.{' '}
+                      {t.classes.no_available_hint}
                     </p>
-                    <div className="space-y-1.5">
-                      {available.map(s => {
-                        const sel = selectedIds.has(s.id)
-                        return (
-                          <button key={s.id} onClick={() => toggleAvailable(s.id)}
-                            className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
-                              sel ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-transparent hover:bg-gray-100'
-                            }`}>
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-                              style={{ backgroundColor: sel ? '#1E8449' : '#9CA3AF' }}>
-                              {sel ? <Check className="w-4 h-4" /> : initials(s.name)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900">{s.name}</p>
-                              <p className="text-xs text-gray-400">{s.branch}</p>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {selectedIds.size > 0 && (
-                      <button onClick={addSelected} disabled={addingStudents}
-                        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
-                        style={{ background: '#1E8449' }}>
-                        {addingStudents && <Loader2 className="w-4 h-4 animate-spin" />}
-                        <Users className="w-4 h-4" />
-                        Add {selectedIds.size} Student{selectedIds.size !== 1 ? 's' : ''}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        {available.map(s => {
+                          const sel = selectedIds.has(s.id)
+                          return (
+                            <button key={s.id} onClick={() => toggleAvailable(s.id)}
+                              className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
+                                sel ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-transparent hover:bg-gray-100'
+                              }`}>
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                                style={{ backgroundColor: sel ? '#1E8449' : '#9CA3AF' }}>
+                                {sel ? <Check className="w-4 h-4" /> : initials(s.name)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900">{s.name}</p>
+                                <p className="text-xs text-gray-400">{s.branch}</p>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {selectedIds.size > 0 && (
+                        <button onClick={addSelected} disabled={addingStudents}
+                          className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                          style={{ background: '#1E8449' }}>
+                          {addingStudents && <Loader2 className="w-4 h-4 animate-spin" />}
+                          <Users className="w-4 h-4" />
+                          {t.common.add} {selectedIds.size} {selectedIds.size !== 1 ? t.classes.student_plural : t.classes.student_singular}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

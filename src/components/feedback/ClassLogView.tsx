@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { PenLine, History } from 'lucide-react'
 import { FeedbackForm } from './FeedbackForm'
 import { TIER_COLORS } from '@/types'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 interface ClassOption {
   id: string
@@ -30,6 +32,8 @@ function formatDateTime(d: string) {
 }
 
 function LogCard({ log }: { log: LogEntry }) {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
   const tier = log.class?.tier ?? ''
   const branch = log.class?.branch ?? ''
   const color = TIER_COLORS[tier] || '#6B7280'
@@ -46,16 +50,16 @@ function LogCard({ log }: { log: LogEntry }) {
       </div>
       <div className="px-5 py-4 space-y-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">How it went</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{t.feedback.how_it_went}</p>
           <p className="text-sm text-gray-700">{log.how_was_class}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Topics Covered</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{t.feedback.topics_covered}</p>
           <p className="text-sm text-gray-700">{log.topics_covered}</p>
         </div>
         {log.other_comments && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Notes</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{t.feedback.notes}</p>
             <p className="text-sm text-gray-500 italic">{log.other_comments}</p>
           </div>
         )}
@@ -72,14 +76,16 @@ interface Props {
 }
 
 export function ClassLogView({ classes, allLogs, defaultClassId, defaultTab }: Props) {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
   const [tab, setTab] = useState<'log' | 'history'>(defaultTab)
 
   return (
     <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Class Log</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Track how each session went</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.feedback.class_log_title}</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{t.feedback.class_log_subtitle}</p>
         </div>
         <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
           <button
@@ -88,7 +94,7 @@ export function ClassLogView({ classes, allLogs, defaultClassId, defaultTab }: P
               tab === 'log' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <PenLine className="w-3.5 h-3.5" /> Log Session
+            <PenLine className="w-3.5 h-3.5" /> {t.feedback.log_session_tab}
           </button>
           <button
             onClick={() => setTab('history')}
@@ -96,7 +102,7 @@ export function ClassLogView({ classes, allLogs, defaultClassId, defaultTab }: P
               tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <History className="w-3.5 h-3.5" /> View Logs ({allLogs.length})
+            <History className="w-3.5 h-3.5" /> {t.feedback.view_logs_tab} ({allLogs.length})
           </button>
         </div>
       </div>
@@ -108,7 +114,7 @@ export function ClassLogView({ classes, allLogs, defaultClassId, defaultTab }: P
           {allLogs.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
               <History className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No logs yet. Start by logging a session.</p>
+              <p className="text-sm text-gray-400">{t.feedback.no_logs}</p>
             </div>
           ) : (
             allLogs.map(log => <LogCard key={log.id} log={log} />)

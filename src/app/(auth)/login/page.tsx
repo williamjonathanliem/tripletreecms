@@ -2,24 +2,29 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, GraduationCap, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { loginSchema, type LoginInput } from '@/lib/validations'
+import { CMS_T } from '@/lib/i18n/cms'
+import { startNavProgress } from '@/components/layout/NavigationProgress'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
+  const [lang, setLang] = useState<'en' | 'zh'>('en')
+  const [redirecting, setRedirecting] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const l = CMS_T[lang]
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) })
+  } = useForm<LoginInput>({ resolver: standardSchemaResolver(loginSchema) })
 
   async function onSubmit(data: LoginInput) {
     setServerError('')
@@ -30,11 +35,13 @@ export default function LoginPage() {
     if (error) {
       setServerError(
         error.message.includes('Email not confirmed')
-          ? 'Please verify your email before logging in.'
-          : 'Invalid email or password.'
+          ? l.login.error_verify
+          : l.login.error_invalid
       )
       return
     }
+    setRedirecting(true)
+    startNavProgress()
     router.push('/dashboard')
     router.refresh()
   }
@@ -94,8 +101,33 @@ export default function LoginPage() {
         >
           <GraduationCap className="w-4 h-4 text-white" />
         </div>
-        <span className="text-white/80 text-sm font-semibold tracking-wide">Triple Tree CMS</span>
+        <span className="text-white/80 text-sm font-semibold tracking-wide">{l.login.brand}</span>
       </div>
+
+      {/* Language toggle — top right */}
+      <div className="absolute top-6 right-7 z-20">
+        <button
+          onClick={() => setLang(v => v === 'en' ? 'zh' : 'en')}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            color: 'rgba(255,255,255,0.7)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          {lang === 'en' ? '中文' : 'EN'}
+        </button>
+      </div>
+
+      {/* Redirect overlay */}
+      {redirecting && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3"
+          style={{ background: 'rgba(7,26,14,0.7)', backdropFilter: 'blur(8px)' }}>
+          <Loader2 className="w-7 h-7 text-white animate-spin" />
+          <p className="text-white/70 text-sm font-medium">Signing you in…</p>
+        </div>
+      )}
 
       {/* Card */}
       <div className="relative z-10 w-full max-w-[360px] mx-5">
@@ -124,9 +156,9 @@ export default function LoginPage() {
 
           <div className="text-center mb-7">
             <h1 className="text-[1.35rem] font-bold text-white leading-tight mb-1">
-              Sign in with email
+              {l.login.sign_in}
             </h1>
-            <p className="text-white/45 text-sm">Teacher portal — Triple Tree Enrichment</p>
+            <p className="text-white/45 text-sm">{l.login.subtitle}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
@@ -147,7 +179,7 @@ export default function LoginPage() {
             <div>
               <input
                 type="email"
-                placeholder="Email"
+                placeholder={l.login.email}
                 autoComplete="email"
                 {...register('email')}
                 className="w-full h-11 px-4 text-sm rounded-xl outline-none transition-all"
@@ -181,7 +213,7 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
+                  placeholder={l.login.password}
                   autoComplete="current-password"
                   {...register('password')}
                   className="w-full h-11 px-4 pr-11 text-sm rounded-xl outline-none transition-all"
@@ -238,7 +270,7 @@ export default function LoginPage() {
                   ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.4)')
                 }
               >
-                Forgot password?
+                {l.login.forgot}
               </Link>
             </div>
 
@@ -256,7 +288,7 @@ export default function LoginPage() {
                 (e.currentTarget as HTMLElement).style.background = '#1E8449'
               }}
             >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get Started'}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : l.login.submit}
             </button>
           </form>
         </div>

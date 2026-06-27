@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Save, Users } from 'lucide-react'
 import { TIER_COLORS } from '@/types'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 type StatusValue = 'present' | 'late' | 'absent' | 'excused'
 
@@ -19,13 +21,6 @@ interface Props {
   existing: ExistingRecord[]
 }
 
-const STATUS_CONFIG: Record<StatusValue, { label: string; bg: string; color: string; activeBg: string }> = {
-  present: { label: 'Present', bg: '#F0FFF4', color: '#1E8449', activeBg: '#1E8449' },
-  late:    { label: 'Late',    bg: '#FFFBEB', color: '#B45309', activeBg: '#D97706' },
-  absent:  { label: 'Absent',  bg: '#FEF2F2', color: '#DC2626', activeBg: '#DC2626' },
-  excused: { label: 'Excused', bg: '#F5F5F5', color: '#6B7280', activeBg: '#6B7280' },
-}
-
 const ALL_STATUSES: StatusValue[] = ['present', 'late', 'absent', 'excused']
 
 function initials(name: string) {
@@ -33,6 +28,16 @@ function initials(name: string) {
 }
 
 export function AttendanceSheet({ sessionId, classId, roster, existing }: Props) {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
+
+  const STATUS_CONFIG: Record<StatusValue, { label: string; bg: string; color: string; activeBg: string }> = {
+    present: { label: t.classes.present, bg: '#F0FFF4', color: '#1E8449', activeBg: '#1E8449' },
+    late:    { label: t.classes.late,    bg: '#FFFBEB', color: '#B45309', activeBg: '#D97706' },
+    absent:  { label: t.classes.absent,  bg: '#FEF2F2', color: '#DC2626', activeBg: '#DC2626' },
+    excused: { label: t.classes.excused, bg: '#F5F5F5', color: '#6B7280', activeBg: '#6B7280' },
+  }
+
   const router = useRouter()
   const supabase = createClient()
 
@@ -68,6 +73,7 @@ export function AttendanceSheet({ sessionId, classId, roster, existing }: Props)
       .from('attendance')
       .upsert(records, { onConflict: 'session_id,student_id' })
     if (error) { toast.error('Failed to save attendance'); setSaving(false); return }
+
     toast.success('Attendance saved')
     setSaving(false)
     router.refresh()
@@ -77,8 +83,8 @@ export function AttendanceSheet({ sessionId, classId, roster, existing }: Props)
     return (
       <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
         <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-        <p className="text-sm text-gray-400">No students in roster.</p>
-        <p className="text-xs text-gray-400 mt-1">Add students to this class from the class page.</p>
+        <p className="text-sm text-gray-400">{t.classes.no_roster}</p>
+        <p className="text-xs text-gray-400 mt-1">{t.classes.roster_hint}</p>
       </div>
     )
   }
@@ -105,11 +111,11 @@ export function AttendanceSheet({ sessionId, classId, roster, existing }: Props)
           <button onClick={() => markAll('present')}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
             style={{ background: '#EAFAF1', color: '#1E8449' }}>
-            All Present
+            {t.classes.all_present}
           </button>
           <button onClick={() => markAll('absent')}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-            All Absent
+            {t.classes.all_absent}
           </button>
         </div>
       </div>
@@ -157,7 +163,7 @@ export function AttendanceSheet({ sessionId, classId, roster, existing }: Props)
         className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-60"
         style={{ background: '#1E8449' }}>
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-        Save Attendance
+        {t.classes.save_attendance}
       </button>
     </div>
   )

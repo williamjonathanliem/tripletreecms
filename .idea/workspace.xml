@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="9b32c434-cf70-4902-b8ea-321f2f0cf25a" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(auth)/forgot-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(auth)/forgot-password/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(auth)/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(auth)/login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(auth)/reset-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(auth)/reset-password/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(auth)/set-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(auth)/set-password/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/classes/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/classes/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/profile/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/profile/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/students/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/students/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/students/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/students/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/(dashboard)/trial/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/(dashboard)/trial/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/classes/AddClassDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/classes/AddClassDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/classes/AttendanceSheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/classes/AttendanceSheet.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/classes/ClassDetailView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/classes/ClassDetailView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/classes/ClassList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/classes/ClassList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/classes/EditClassDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/classes/EditClassDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/classes/LogSessionDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/classes/LogSessionDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/curriculum/CurriculumView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/curriculum/CurriculumView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/feedback/ClassLogView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/feedback/ClassLogView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/feedback/FeedbackForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/feedback/FeedbackForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/Sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/profile/ChangePasswordForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/profile/ChangePasswordForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/profile/ProfileForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/profile/ProfileForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/students/AddStudentDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/students/AddStudentDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/students/EditStudentDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/students/EditStudentDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/students/StudentForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/students/StudentForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/students/StudentTable.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/students/StudentTable.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/trial/AddTrialDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/trial/AddTrialDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/trial/TrialStudentList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/trial/TrialStudentList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/curriculumData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/curriculumData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/validations.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/validations.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/middleware.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/middleware.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/index.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 8
+}]]></component>
+  <component name="ProjectId" id="3FfUZiBWmhwZQPoFZeaay60WB4S" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "master",
+    "settings.editor.selected.configurable": "AndroidSdkUpdater"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9b32c434-cf70-4902-b8ea-321f2f0cf25a" name="Changes" comment="" />
+      <created>1782465674921</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1782465674921</updated>
+    </task>
+    <servers />
+  </component>
+</project>

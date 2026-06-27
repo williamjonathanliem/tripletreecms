@@ -10,6 +10,7 @@ export interface TierData {
   ages: string
   category: 'Foundation' | 'Robotics' | 'Creative' | 'Specialist'
   sessions: number
+  sessionsNote?: string
   duration: string
   hardware: string
   color: string
@@ -121,7 +122,8 @@ export const CURRICULUM_DATA: TierData[] = [
     name: 'Robotics Advanced',
     ages: '10–12 yrs',
     category: 'Robotics',
-    sessions: 24,
+    sessions: 21,
+    sessionsNote: '+8 optional',
     duration: '1.5 hrs',
     hardware: 'ZMROBO Innovation Storm 2108E',
     color: '#1A5276',
@@ -141,9 +143,6 @@ export const CURRICULUM_DATA: TierData[] = [
       { name: 'IBM SkillsBuild — Session A: AI fundamentals', tags: ['IBM'], isShowcase: false },
       { name: 'MPU: IoT + Future of Computing', tags: ['MPU', 'Cisco'], isShowcase: false },
       { name: 'IBM SkillsBuild — Session B: Cybersecurity', tags: ['IBM'], isShowcase: false },
-      { name: 'Shared: Python AI Intro A', tags: ['Shared'], isShowcase: false },
-      { name: 'Shared: Web App A — HTML/CSS', tags: ['Shared'], isShowcase: false },
-      { name: 'Shared: Web App B — Flask basics', tags: ['Shared'], isShowcase: false },
       { name: 'Capstone Choice + Planning (AI Security Bot / Smart Traffic / Gesture Robot)', tags: [], isShowcase: false },
       { name: 'Capstone Build A (Innovation Storm)', tags: [], isShowcase: false },
       { name: 'Capstone Build B (Innovation Storm)', tags: [], isShowcase: false },
@@ -191,7 +190,7 @@ export const CURRICULUM_DATA: TierData[] = [
     name: 'Creative Advanced',
     ages: '10–12 yrs',
     category: 'Creative',
-    sessions: 24,
+    sessions: 22,
     duration: '1 hr',
     hardware: 'Laptop only · Roblox Studio + Figma + AI',
     color: '#6C3483',
@@ -209,8 +208,6 @@ export const CURRICULUM_DATA: TierData[] = [
       { name: 'Midjourney — AI Art B: concept art, import to Roblox', tags: [], isShowcase: false },
       { name: 'Hugging Face — AI Models: text + image for creative use', tags: [], isShowcase: false },
       { name: 'MPU: Online Identity + IP', tags: ['MPU', 'Cambridge'], isShowcase: false },
-      { name: 'Shared: Python AI Intro', tags: ['Shared'], isShowcase: false },
-      { name: 'Shared: Web App — creative portfolio page', tags: ['Shared'], isShowcase: false },
       { name: 'Capstone — Agency Brief + Planning', tags: [], isShowcase: false },
       { name: 'Capstone — Roblox World A: terrain, structures, theme', tags: [], isShowcase: false },
       { name: 'Capstone — Roblox World B: Lua interactions, game systems', tags: [], isShowcase: false },
@@ -261,7 +258,7 @@ export const CURRICULUM_DATA: TierData[] = [
     name: 'Specialist Advanced',
     ages: '10–12 yrs',
     category: 'Specialist',
-    sessions: 24,
+    sessions: 23,
     duration: '1 hr',
     hardware: 'Laptop only · Python + AI + Web',
     color: '#1E8449',
@@ -282,7 +279,6 @@ export const CURRICULUM_DATA: TierData[] = [
       { name: 'Web Dev C — JS + Python bridge, fetch request', tags: [], isShowcase: false },
       { name: 'Flask A — routes, templates, first Flask app', tags: [], isShowcase: false },
       { name: 'Flask B — forms, data, Python processes result', tags: [], isShowcase: false },
-      { name: 'Shared: Python AI + Flask integration', tags: ['Shared'], isShowcase: false },
       { name: 'Capstone Planning — wireframe, plan AI feature', tags: [], isShowcase: false },
       { name: 'Capstone Build A — HTML/CSS + Flask routes', tags: [], isShowcase: false },
       { name: 'Capstone Build B — AI feature (pandas or scikit-learn)', tags: [], isShowcase: false },
@@ -319,18 +315,7 @@ export const TAG_STYLES: Record<string, { text: string; bg: string }> = {
   CM: { text: '#E65100', bg: '#FFF3E0' },
   Cisco: { text: '#0D47A1', bg: '#E3F2FD' },
   Cambridge: { text: '#283593', bg: '#E8EAF6' },
-  Shared: { text: '#6A1B9A', bg: '#F3E5F5' },
   MIT: { text: '#880E4F', bg: '#FCE4EC' },
   IBM: { text: '#1565C0', bg: '#E8EAF6' },
 }
 
-export const SHARED_MODULE = {
-  title: 'Python Introduction to AI + Web App Engineering',
-  description:
-    'Woven into all three advanced branch sessions. Not a separate class. Topics: Python AI basics · HTML · CSS · Flask · deploy a simple web app. Every advanced student deploys one working web app by end of year regardless of track.',
-  sessions: [
-    'Robotics Advanced: sessions 16–18',
-    'Creative Advanced: sessions 14–15',
-    'Specialist Advanced: session 17',
-  ],
-}

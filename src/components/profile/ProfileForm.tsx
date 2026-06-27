@@ -1,23 +1,28 @@
 'use client'
 
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 const schema = z.object({ name: z.string().min(1, 'Name is required') })
 
 const inputClass = "w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#1E8449] focus:bg-white transition-colors"
 
 export function ProfileForm({ teacherName, email }: { teacherName: string; email: string }) {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
+
   const router = useRouter()
   const supabase = createClient()
 
   const { register, handleSubmit, formState: { errors, isSubmitting, isDirty } } =
-    useForm({ resolver: zodResolver(schema), defaultValues: { name: teacherName } })
+    useForm({ resolver: standardSchemaResolver(schema), defaultValues: { name: teacherName } })
 
   async function onSubmit(data: { name: string }) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -31,14 +36,14 @@ export function ProfileForm({ teacherName, email }: { teacherName: string; email
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Full Name</label>
-        <input {...register('name')} placeholder="Your name" className={inputClass} />
+        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t.profile.full_name}</label>
+        <input {...register('name')} placeholder={t.profile.name_placeholder} className={inputClass} />
         {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Email</label>
+        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t.profile.email}</label>
         <input value={email} disabled className={`${inputClass} opacity-50 cursor-not-allowed`} />
-        <p className="text-xs text-gray-400">Email address cannot be changed.</p>
+        <p className="text-xs text-gray-400">{t.profile.email_hint}</p>
       </div>
       <button
         type="submit"
@@ -47,7 +52,7 @@ export function ProfileForm({ teacherName, email }: { teacherName: string; email
         style={{ background: '#1E8449' }}
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        Save Changes
+        {t.profile.save_changes}
       </button>
     </form>
   )

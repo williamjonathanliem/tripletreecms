@@ -11,93 +11,146 @@ import {
 } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import Link from 'next/link'
-import type { Student } from '@/types'
-import { TIER_COLORS, TIER_CATEGORY } from '@/types'
+import type { Student, Subject } from '@/types'
+import { TIER_COLORS, SUBJECTS, SUBJECT_META } from '@/types'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-const FILTER_TABS = ['All', 'Foundation', 'Robotics', 'Creative', 'Specialist'] as const
+type FeeKey = 'all' | 'paid' | 'unpaid' | 'partial'
+
+const FEE_FILTERS: { key: FeeKey; label: string; color: string; bg: string }[] = [
+  { key: 'all',     label: 'All',     color: '#6B7280', bg: '#F9FAFB' },
+  { key: 'paid',    label: 'Paid',    color: '#1E8449', bg: '#EAFAF1' },
+  { key: 'unpaid',  label: 'Unpaid',  color: '#CB4335', bg: '#FDEDEC' },
+  { key: 'partial', label: 'Partial', color: '#B7770D', bg: '#FEF9E7' },
+]
 
 export function StudentTable({ students }: { students: Student[] }) {
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('All')
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
+
+  const [search, setSearch] = useState('')
+  const [subjectFilter, setSubjectFilter] = useState<Subject | 'all'>('all')
+  const [feeFilter, setFeeFilter] = useState<FeeKey>('all')
 
   const filtered = useMemo(() => {
-    if (categoryFilter === 'All') return students
-    return students.filter(s => TIER_CATEGORY[s.tier] === categoryFilter)
-  }, [students, categoryFilter])
+    return students.filter(s => {
+      const matchSubject = subjectFilter === 'all' || s.subject === subjectFilter
+      const matchFee = feeFilter === 'all' || (s.fee_status ?? 'unpaid') === feeFilter
+      const matchSearch = !search || (
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.tier.toLowerCase().includes(search.toLowerCase()) ||
+        s.branch.toLowerCase().includes(search.toLowerCase())
+      )
+      return matchSubject && matchFee && matchSearch
+    })
+  }, [students, subjectFilter, feeFilter, search])
 
   const columns: ColumnDef<Student>[] = [
     {
       accessorKey: 'name',
-      header: 'Student',
+      header: t.students.col_student,
       cell: ({ row }) => {
         const s = row.original
-        const color = TIER_COLORS[s.tier] || '#6B7280'
+        const color = TIER_COLORS[s.tier] || SUBJECT_META[s.subject]?.color || '#6B7280'
         return (
           <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-              style={{ backgroundColor: color }}
-            >
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+              style={{ backgroundColor: color }}>
               {getInitials(s.name)}
             </div>
             <div>
               <p className="font-medium text-gray-900 text-sm">{s.name}</p>
-              <p className="text-xs text-gray-500">Age {s.age}</p>
+              <p className="text-xs text-gray-500">{t.students.age} {s.age}</p>
             </div>
           </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'subject',
+      header: t.students.subject ?? 'Subject',
+      cell: ({ getValue }) => {
+        const s = getValue() as Subject
+        const meta = SUBJECT_META[s]
+        if (!meta) return <span className="text-xs text-gray-400">—</span>
+        return (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ color: meta.color, background: meta.bg }}>
+            {meta.label}
+          </span>
         )
       },
     },
     {
       accessorKey: 'tier',
-      header: 'Tier',
-      cell: ({ getValue }) => <span className="text-sm text-gray-700">{getValue() as string}</span>,
+      header: t.students.col_tier,
+      cell: ({ getValue, row }) => {
+        const tier = getValue() as string
+        const color = TIER_COLORS[tier] || SUBJECT_META[row.original.subject]?.color || '#6B7280'
+        const isTierLabel = !TIER_COLORS[tier]
+        return (
+          <span className="text-xs text-gray-700" style={isTierLabel ? { color } : undefined}>
+            {tier}
+          </span>
+        )
+      },
     },
     {
       accessorKey: 'branch',
-      header: 'Branch',
+      header: t.students.col_branch,
       cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue() as string}</span>,
     },
     {
       accessorKey: 'module_current',
-      header: 'Progress',
+      header: t.students.col_progress,
       cell: ({ row }) => {
         const s = row.original
         const pct = s.module_total > 0 ? (s.module_current / s.module_total) * 100 : 0
+        const color = TIER_COLORS[s.tier] || SUBJECT_META[s.subject]?.color || '#6B7280'
         return (
-          <div className="min-w-[100px]">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Module {s.module_current}</span>
-              <span>{s.module_total}</span>
+          <div className="min-w-[90px]">
+            <div className="flex justify-between text-xs text-gray-400 mb-1">
+              <span>{s.module_current}/{s.module_total}</span>
+              <span>{Math.round(pct)}%</span>
             </div>
-            <Progress value={pct} className="h-1.5" />
+            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+            </div>
           </div>
         )
       },
     },
     {
-      accessorKey: 'enrolled_date',
-      header: 'Enrolled',
-      cell: ({ getValue }) => (
-        <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
-          {getValue() as string}
-        </Badge>
-      ),
+      accessorKey: 'fee_status',
+      header: t.students.col_fee,
+      cell: ({ getValue }) => {
+        const v = (getValue() as string) ?? 'unpaid'
+        const cfg: Record<string, { label: string; color: string; bg: string }> = {
+          paid:    { label: t.students.fee_paid,    color: '#1E8449', bg: '#EAFAF1' },
+          unpaid:  { label: t.students.fee_unpaid,  color: '#CB4335', bg: '#FDEDEC' },
+          partial: { label: t.students.fee_partial, color: '#B7770D', bg: '#FEF9E7' },
+        }
+        const c = cfg[v] ?? cfg.unpaid
+        return (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ color: c.color, background: c.bg }}>
+            {c.label}
+          </span>
+        )
+      },
     },
     {
       id: 'actions',
       cell: ({ row }) => (
         <Link href={`/students/${row.original.id}`}>
-          <Button size="sm" variant="outline" className="text-xs h-7 px-2">View</Button>
+          <Button size="sm" variant="outline" className="text-xs h-7 px-2">{t.common.view}</Button>
         </Link>
       ),
     },
@@ -106,39 +159,73 @@ export function StudentTable({ students }: { students: Student[] }) {
   const table = useReactTable({
     data: filtered,
     columns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: { pagination: { pageSize: 12 } },
   })
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search students…"
-            value={globalFilter}
-            onChange={e => setGlobalFilter(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Input
+          placeholder={t.students.search_placeholder}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
-      <Tabs value={categoryFilter} onValueChange={setCategoryFilter}>
-        <TabsList className="bg-gray-100">
-          {FILTER_TABS.map(t => (
-            <TabsTrigger key={t} value={t} className="text-xs">{t}</TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Subject filter */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setSubjectFilter('all')}
+          className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+          style={subjectFilter === 'all'
+            ? { background: '#1A5276', color: 'white', borderColor: '#1A5276' }
+            : { background: 'white', color: '#6B7280', borderColor: '#E5E7EB' }}>
+          {t.students.filter_all}
+        </button>
+        {SUBJECTS.map(s => {
+          const meta = SUBJECT_META[s]
+          const active = subjectFilter === s
+          return (
+            <button key={s} onClick={() => setSubjectFilter(s)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+              style={active
+                ? { background: meta.bg, color: meta.color, borderColor: meta.color }
+                : { background: 'white', color: '#9CA3AF', borderColor: '#E5E7EB' }}>
+              {meta.label}
+            </button>
+          )
+        })}
+      </div>
 
-      <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+      {/* Fee status filter */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-xs text-gray-400 font-medium">Fee:</span>
+        {FEE_FILTERS.map(f => (
+          <button key={f.key} onClick={() => setFeeFilter(f.key)}
+            className="px-3 py-1 rounded-full text-xs font-semibold border transition-all"
+            style={feeFilter === f.key
+              ? { background: f.bg, color: f.color, borderColor: f.color + '60' }
+              : { background: 'white', color: '#9CA3AF', borderColor: '#E5E7EB' }}>
+            {f.label}
+            {f.key !== 'all' && (
+              <span className="ml-1.5 opacity-60">
+                {students.filter(s => (s.fee_status ?? 'unpaid') === f.key).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-xl border border-gray-100 overflow-hidden bg-white shadow-sm">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-gray-50 border-b border-gray-100">
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id}>
                 {hg.headers.map(h => (
@@ -149,11 +236,11 @@ export function StudentTable({ students }: { students: Student[] }) {
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-50">
             {table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-400 text-sm">
-                  No students found.
+                <td colSpan={columns.length} className="px-4 py-10 text-center text-gray-400 text-sm">
+                  {t.students.no_students}
                 </td>
               </tr>
             ) : (
@@ -171,17 +258,17 @@ export function StudentTable({ students }: { students: Student[] }) {
         </table>
       </div>
 
+      {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500">
-        <span>
-          {filtered.length} student{filtered.length !== 1 ? 's' : ''}
-          {categoryFilter !== 'All' && ` in ${categoryFilter}`}
+        <span className="text-xs text-gray-400">
+          {filtered.length} of {students.length} {t.students.count_plural}
         </span>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <span className="px-2 text-xs">
-            Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount() || 1}
+            {t.students.page_label} {table.getState().pagination.pageIndex + 1} {t.students.page_of} {table.getPageCount() || 1}
           </span>
           <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
             <ChevronRight className="w-4 h-4" />

@@ -1,85 +1,254 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import Image from 'next/image'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard,
-  Users,
-  UserPlus,
-  CalendarDays,
-  MessageSquare,
-  BookOpen,
-  User,
-  LogOut,
-  GraduationCap,
+  LayoutDashboard, Users, UserPlus, CalendarDays, MessageSquare,
+  BookOpen, User, LogOut, Calendar, Bell, BarChart2, Clock, PieChart,
+  ClipboardList, FileText, CreditCard, ShieldCheck, Loader2, UserCog,
 } from 'lucide-react'
+import { InstallButton } from '@/components/layout/InstallButton'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { startNavProgress } from '@/components/layout/NavigationProgress'
+import type { Subject } from '@/types'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/students', label: 'Students', icon: Users },
-  { href: '/trial', label: 'Trial Students', icon: UserPlus },
-  { href: '/classes', label: 'Classes', icon: CalendarDays },
-  { href: '/feedback', label: 'Class Log', icon: MessageSquare },
-  { href: '/curriculum', label: 'Curriculum', icon: BookOpen },
-  { href: '/profile', label: 'Profile', icon: User },
-]
+interface SidebarProps {
+  role: 'teacher' | 'hr'
+  subjects: Subject[]
+}
 
-export function Sidebar() {
+const NAV_LABELS = {
+  en: {
+    // Shared
+    dashboard:    'Dashboard',
+    students:     'Students',
+    trial:        'Trial Students',
+    classes:      'Classes',
+    feedback:     'Class Log',
+    schedule:     'Schedule',
+    curriculum:   'Curriculum',
+    confirmation: 'Confirmation',
+    // HR Admin section labels
+    hr_section:   'HR Admin',
+    teacher_section: 'Teacher Tools',
+    // HR items
+    overview:     'Overview',
+    teachers:     'Teachers',
+    availability: 'Availability',
+    subjects:     'Subjects',
+    announcements:'Announcements',
+    analytics:    'Analytics',
+    submissions:  'Submissions',
+    payments:     'Payments',
+    parents:      'Parent Accounts',
+    // Bottom
+    profile:      'Profile',
+    signout:      'Sign Out',
+  },
+  zh: {
+    // Shared
+    dashboard:    '主页',
+    students:     '学生',
+    trial:        '试课学生',
+    classes:      '课程',
+    feedback:     '课堂记录',
+    schedule:     '课程表',
+    curriculum:   '课程大纲',
+    confirmation: '确认书',
+    // HR Admin section labels
+    hr_section:   'HR 管理',
+    teacher_section: '教师功能',
+    // HR items
+    overview:     '总览',
+    teachers:     '教师',
+    availability: '空档时间',
+    subjects:     '科目',
+    announcements:'公告',
+    analytics:    '数据分析',
+    submissions:  '申请表',
+    payments:     '收费管理',
+    parents:      '家长账号',
+    // Bottom
+    profile:      '个人资料',
+    signout:      '登出',
+  },
+} as const
+
+export function Sidebar({ role, subjects }: SidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const currentTab = searchParams.get('tab')
   const router = useRouter()
   const supabase = createClient()
+  const { lang, toggle } = useCmsLang()
+  const t = NAV_LABELS[lang]
+  const [signingOut, setSigningOut] = useState(false)
 
   async function handleSignOut() {
+    setSigningOut(true)
+    startNavProgress()
     await supabase.auth.signOut()
     router.push('/login')
   }
 
+  const teacherNav = [
+    { href: '/dashboard',    label: t.dashboard,    icon: LayoutDashboard },
+    { href: '/students',     label: t.students,     icon: Users },
+    { href: '/trial',        label: t.trial,        icon: UserPlus },
+    { href: '/classes',      label: t.classes,      icon: CalendarDays },
+    { href: '/feedback',     label: t.feedback,     icon: MessageSquare },
+    { href: '/schedule',     label: t.schedule,     icon: Calendar },
+    ...(subjects.includes('coding') ? [{ href: '/curriculum', label: t.curriculum, icon: BookOpen }] : []),
+    { href: '/confirmation', label: t.confirmation, icon: FileText },
+  ]
+
+  // HR admin-only tabs (inside /hr?tab=...)
+  const hrAdminNav = [
+    { href: '/hr',                   label: t.overview,      icon: LayoutDashboard, tab: null as string | null },
+    { href: '/hr?tab=teachers',      label: t.teachers,      icon: Users,           tab: 'teachers' },
+    { href: '/hr?tab=payments',      label: t.payments,      icon: CreditCard,      tab: 'payments' },
+    { href: '/hr?tab=availability',  label: t.availability,  icon: Clock,           tab: 'availability' },
+    { href: '/hr?tab=subjects',      label: t.subjects,      icon: PieChart,        tab: 'subjects' },
+    { href: '/hr?tab=announcements', label: t.announcements, icon: Bell,            tab: 'announcements' },
+    { href: '/hr?tab=analytics',     label: t.analytics,     icon: BarChart2,       tab: 'analytics' },
+    { href: '/hr?tab=submissions',   label: t.submissions,   icon: ClipboardList,   tab: 'submissions' },
+    { href: '/hr?tab=confirmation',  label: t.confirmation,  icon: FileText,        tab: 'confirmation' },
+    { href: '/hr?tab=parents',       label: t.parents,       icon: UserCog,         tab: 'parents'       },
+  ]
+
+  // Teacher tools available to HR (standalone pages)
+  const hrTeacherNav = [
+    { href: '/students', label: t.students, icon: Users },
+    { href: '/trial',    label: t.trial,    icon: UserPlus },
+  ]
+
+  function isHrAdminActive(tab: string | null) {
+    if (pathname !== '/hr') return false
+    if (tab === null) return !currentTab || currentTab === 'overview'
+    return currentTab === tab
+  }
+
+  function isPageActive(href: string) {
+    return pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
+  }
+
+  function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
+    return (
+      <Link href={href}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          active ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+        )}>
+        <Icon className="w-4 h-4 shrink-0" />
+        <span>{label}</span>
+      </Link>
+    )
+  }
+
   return (
-    <aside className="w-60 h-screen sticky top-0 bg-white border-r border-gray-200 flex flex-col shrink-0">
-      <div className="p-5 border-b border-gray-200">
+    <aside className="w-60 h-screen sticky top-0 bg-white border-r border-gray-100 flex flex-col shrink-0">
+      {/* Logo */}
+      <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#1E8449] rounded-lg flex items-center justify-center">
-            <GraduationCap className="w-4 h-4 text-white" />
-          </div>
+          <Image src="/logo.png" alt="Triple Tree" width={32} height={32} className="rounded-lg object-contain" />
           <div>
-            <p className="text-sm font-semibold text-gray-900 leading-tight">Triple Tree</p>
-            <p className="text-xs text-gray-500 leading-tight">Enrichment CMS</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">Triple Tree</p>
+            <p className="text-[11px] text-gray-400 leading-tight">
+              {role === 'hr'
+                ? (lang === 'zh' ? 'HR 行政' : 'HR Administration')
+                : (lang === 'zh' ? '教育管理系统' : 'Enrichment CMS')}
+            </p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-3 space-y-0.5">
-        {navItems.map(item => {
-          const Icon = item.icon
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </Link>
-          )
-        })}
+      {/* Nav */}
+      <nav className="flex-1 p-3 overflow-y-auto">
+        {role === 'hr' ? (
+          <>
+            {/* HR Admin section */}
+            <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
+              <ShieldCheck className="w-3 h-3 text-[#1A5276]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#1A5276]">{t.hr_section}</span>
+            </div>
+            <div className="space-y-0.5 mb-4">
+              {hrAdminNav.map(item => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={isHrAdminActive(item.tab)}
+                />
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-100 mb-4" />
+
+            {/* Teacher Tools section */}
+            <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
+              <Users className="w-3 h-3 text-gray-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t.teacher_section}</span>
+            </div>
+            <div className="space-y-0.5">
+              {hrTeacherNav.map(item => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={isPageActive(item.href)}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="space-y-0.5">
+            {teacherNav.map(item => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                active={isPageActive(item.href)}
+              />
+            ))}
+          </div>
+        )}
       </nav>
 
-      <div className="p-3 border-t border-gray-200">
+      {/* Bottom */}
+      <div className="p-3 border-t border-gray-100 space-y-0.5">
+        <InstallButton />
+        <button
+          onClick={toggle}
+          className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors"
+        >
+          <span>{lang === 'en' ? 'Language' : '语言'}</span>
+          <span className="text-xs bg-gray-100 rounded px-1.5 py-0.5 font-semibold text-gray-600">
+            {lang === 'en' ? 'EN' : '中文'}
+          </span>
+        </button>
+        <Link href="/profile"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+            pathname === '/profile' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          )}>
+          <User className="w-4 h-4 shrink-0" />
+          <span>{t.profile}</span>
+        </Link>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 w-full transition-colors"
+          disabled={signingOut}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800 w-full transition-colors disabled:opacity-60"
         >
-          <LogOut className="w-4 h-4" />
-          Sign Out
+          {signingOut ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" /> : <LogOut className="w-4 h-4 shrink-0" />}
+          <span>{signingOut ? (lang === 'zh' ? '退出中…' : 'Signing out…') : t.signout}</span>
         </button>
       </div>
     </aside>

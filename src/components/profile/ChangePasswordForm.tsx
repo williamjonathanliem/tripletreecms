@@ -2,24 +2,29 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { toast } from 'sonner'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { changePasswordSchema, type ChangePasswordInput } from '@/lib/validations'
-
-const FIELDS = [
-  { key: 'current', label: 'Current Password', reg: 'currentPassword' as const },
-  { key: 'new',     label: 'New Password',     reg: 'newPassword' as const },
-  { key: 'confirm', label: 'Confirm New Password', reg: 'confirmPassword' as const },
-]
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 export function ChangePasswordForm() {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
+
+  const FIELDS = [
+    { key: 'current', label: t.profile.current_password, reg: 'currentPassword' as const },
+    { key: 'new',     label: t.profile.new_password,     reg: 'newPassword' as const },
+    { key: 'confirm', label: t.profile.confirm_password, reg: 'confirmPassword' as const },
+  ]
+
   const [show, setShow] = useState({ current: false, new: false, confirm: false })
   const supabase = createClient()
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } =
-    useForm<ChangePasswordInput>({ resolver: zodResolver(changePasswordSchema) })
+    useForm<ChangePasswordInput>({ resolver: standardSchemaResolver(changePasswordSchema) })
 
   async function onSubmit(data: ChangePasswordInput) {
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -66,7 +71,7 @@ export function ChangePasswordForm() {
         style={{ background: '#1E8449' }}
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        Update Password
+        {t.profile.update_password}
       </button>
     </form>
   )

@@ -38,11 +38,9 @@ export const changePasswordSchema = z
 
 export const studentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  age: z.coerce.number().min(4, 'Minimum age 4').max(18, 'Maximum age 18'),
+  age: z.number({ error: 'Age is required' }).min(4, 'Minimum age 4').max(18, 'Maximum age 18'),
   tier: z.string().min(1, 'Tier is required'),
   branch: z.string().min(1, 'Branch is required'),
-  module_current: z.coerce.number().min(0).default(0),
-  module_total: z.coerce.number().min(1).default(1),
   enrolled_date: z.string().min(1, 'Enrolled date is required'),
   parent_contact: z.string().optional(),
   notes: z.string().optional(),
@@ -50,7 +48,7 @@ export const studentSchema = z.object({
 
 export const trialStudentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  age: z.coerce.number().min(4, 'Minimum age 4').max(18, 'Maximum age 18'),
+  age: z.number({ error: 'Age is required' }).min(4, 'Minimum age 4').max(18, 'Maximum age 18'),
   tier: z.string().min(1, 'Please select a trial class'),
   class_id: z.string().optional(),
   trial_date: z.string().min(1, 'Trial date is required'),

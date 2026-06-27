@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus, Loader2, ChevronRight, ChevronLeft, Check, Users } from 'lucide-react'
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createClient } from '@/lib/supabase/client'
 import { classSchema, type ClassInput } from '@/lib/validations'
 import { TIERS, TIER_COLORS, CLASS_OPTIONS, DAYS } from '@/types'
+import { useCmsLang } from '@/lib/context/cms-lang-context'
+import { CMS_T } from '@/lib/i18n/cms'
 
 const labelClass = 'text-xs font-semibold uppercase tracking-wide text-gray-500'
 const inputClass = 'w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-[#1E8449] focus:bg-white transition-colors'
@@ -22,6 +24,9 @@ function initials(name: string) {
 }
 
 export function AddClassDialog() {
+  const { lang } = useCmsLang()
+  const t = CMS_T[lang]
+
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<1 | 2>(1)
   const [availableStudents, setAvailableStudents] = useState<StudentOption[]>([])
@@ -33,7 +38,7 @@ export function AddClassDialog() {
 
   const { register, setValue, watch, getValues, trigger, reset, handleSubmit, formState: { errors } } =
     useForm<ClassInput>({
-      resolver: zodResolver(classSchema),
+      resolver: standardSchemaResolver(classSchema),
       defaultValues: { tier: '', branch: '', schedule_day: '', schedule_time: '09:00' },
     })
 
@@ -61,20 +66,17 @@ export function AddClassDialog() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSubmitting(false); return }
     const payload = { ...data, teacher_id: user.id }
-    console.log('[AddClass] payload:', payload)
     const { data: cls, error } = await supabase
       .from('classes').insert(payload).select().single()
     if (error || !cls) {
-      console.error('[AddClass] insert error:', error)
       toast.error(`Failed: ${error?.message ?? 'no data returned'}`)
       setSubmitting(false)
       return
     }
     if (selectedIds.size > 0) {
-      const { error: rosterError } = await supabase.from('class_students').insert(
+      await supabase.from('class_students').insert(
         Array.from(selectedIds).map(student_id => ({ class_id: cls.id, student_id }))
       )
-      if (rosterError) console.error('[AddClass] roster error:', rosterError)
     }
     toast.success('Class created')
     setSubmitting(false)
@@ -98,11 +100,9 @@ export function AddClassDialog() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSubmitting(false); return }
     const payload = { ...data, teacher_id: user.id }
-    console.log('[AddClass] direct payload:', payload)
     const { data: cls, error } = await supabase
       .from('classes').insert(payload).select().single()
     if (error || !cls) {
-      console.error('[AddClass] direct insert error:', error)
       toast.error(`Failed: ${error?.message ?? 'no data returned'}`)
       setSubmitting(false)
       return
@@ -125,35 +125,35 @@ export function AddClassDialog() {
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
         style={{ background: '#1E8449' }}
       >
-        <Plus className="w-4 h-4" /> Add Class
+        <Plus className="w-4 h-4" /> {t.classes.add_btn}
       </button>
 
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{step === 1 ? 'New Class' : 'Add Students to Roster'}</DialogTitle>
+            <DialogTitle>{step === 1 ? t.classes.add_title_step1 : t.classes.add_title_step2}</DialogTitle>
           </DialogHeader>
 
           {step === 1 ? (
             <div className="space-y-4 pt-1">
               {/* Tier */}
               <div className="space-y-1.5">
-                <label className={labelClass}>Tier</label>
+                <label className={labelClass}>{t.classes.tier}</label>
                 <Select value={watchedTier} onValueChange={v => { if (v) setValue('tier', v, { shouldValidate: true }) }}>
                   <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:ring-0">
-                    <SelectValue placeholder="Select tier…" />
+                    <SelectValue placeholder={t.classes.tier_placeholder} />
                   </SelectTrigger>
-                  <SelectContent>{TIERS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                  <SelectContent>{TIERS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}</SelectContent>
                 </Select>
                 {errors.tier && <p className="text-xs text-red-500">{errors.tier.message}</p>}
               </div>
 
               {/* Class */}
               <div className="space-y-1.5">
-                <label className={labelClass}>Class</label>
+                <label className={labelClass}>{t.classes.class_label}</label>
                 <Select value={watchedBranch} onValueChange={v => { if (v) setValue('branch', v, { shouldValidate: true }) }}>
                   <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:ring-0">
-                    <SelectValue placeholder="Select class…" />
+                    <SelectValue placeholder={t.classes.class_placeholder} />
                   </SelectTrigger>
                   <SelectContent>{CLASS_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
@@ -163,16 +163,16 @@ export function AddClassDialog() {
               {/* Schedule */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className={labelClass}>Day <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
+                  <label className={labelClass}>{t.classes.day} <span className="text-gray-400 normal-case font-normal">({t.common.optional})</span></label>
                   <Select value={watchedDay ?? ''} onValueChange={v => setValue('schedule_day', v ?? undefined)}>
                     <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:ring-0">
-                      <SelectValue placeholder="Select day…" />
+                      <SelectValue placeholder={t.classes.day_placeholder} />
                     </SelectTrigger>
                     <SelectContent>{DAYS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className={labelClass}>Time <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
+                  <label className={labelClass}>{t.classes.time} <span className="text-gray-400 normal-case font-normal">({t.common.optional})</span></label>
                   <input type="time" {...register('schedule_time')} className={inputClass} />
                 </div>
               </div>
@@ -184,17 +184,17 @@ export function AddClassDialog() {
                   style={{ background: '#1E8449' }}
                 >
                   {loadingStudents ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
-                  Next: Add Students
+                  {t.classes.next_add_students}
                 </button>
                 <div className="flex gap-2">
                   <button type="button" onClick={createClassDirectly} disabled={submitting}
                     className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors">
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin inline" /> : null}
-                    Skip, create class
+                    {t.classes.skip_create}
                   </button>
                   <button type="button" onClick={() => handleClose(false)}
                     className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
-                    Cancel
+                    {t.classes.cancel}
                   </button>
                 </div>
               </div>
@@ -216,21 +216,21 @@ export function AddClassDialog() {
               {availableStudents.length === 0 ? (
                 <div className="py-8 text-center">
                   <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">No students found for this tier.</p>
-                  <p className="text-xs text-gray-400 mt-1">You can add students later from the class page.</p>
+                  <p className="text-sm text-gray-400">{t.classes.no_students_tier}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t.classes.add_later_hint}</p>
                 </div>
               ) : (
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      {availableStudents.length} students · select to enroll
+                      {availableStudents.length} {t.classes.select_to_enroll}
                     </p>
                     <button type="button" className="text-xs text-[#1E8449] font-semibold"
                       onClick={() => setSelectedIds(
                         selectedIds.size === availableStudents.length
                           ? new Set() : new Set(availableStudents.map(s => s.id))
                       )}>
-                      {selectedIds.size === availableStudents.length ? 'Deselect all' : 'Select all'}
+                      {selectedIds.size === availableStudents.length ? t.classes.deselect_all : t.classes.select_all}
                     </button>
                   </div>
                   <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
@@ -256,18 +256,18 @@ export function AddClassDialog() {
                 </div>
               )}
 
-              <p className="text-xs text-gray-400">{selectedIds.size} student{selectedIds.size !== 1 ? 's' : ''} selected</p>
+              <p className="text-xs text-gray-400">{selectedIds.size} {t.classes.selected_count}</p>
 
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setStep(1)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
-                  <ChevronLeft className="w-4 h-4" /> Back
+                  <ChevronLeft className="w-4 h-4" /> {t.common.back}
                 </button>
                 <button type="submit" disabled={submitting}
                   className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
                   style={{ background: '#1E8449' }}>
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Create Class
+                  {t.classes.create_class}
                 </button>
               </div>
             </form>

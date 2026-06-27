@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -54,7 +54,7 @@ export default function ResetPasswordPage() {
   const supabase = createClient()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
-    useForm<ResetPasswordInput>({ resolver: zodResolver(resetPasswordSchema) })
+    useForm<ResetPasswordInput>({ resolver: standardSchemaResolver(resetPasswordSchema) })
 
   async function onSubmit(data: ResetPasswordInput) {
     setServerError('')
