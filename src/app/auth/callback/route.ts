@@ -5,11 +5,9 @@ import { cookies } from 'next/headers'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // `next` lets the invite URL carry a destination hint
   const next = searchParams.get('next') ?? '/portal'
 
   if (!code) {
-    // No code — just send them somewhere safe
     return NextResponse.redirect(`${origin}/parent-login`)
   }
 
@@ -30,18 +28,21 @@ export async function GET(request: NextRequest) {
     }
   )
 
+  console.log('[callback] code:', code?.slice(0, 12) + '...', 'next:', next)
   const { error } = await supabase.auth.exchangeCodeForSession(code)
+  console.log('[callback] exchangeCodeForSession error:', error?.message ?? 'none')
   if (error) {
     return NextResponse.redirect(`${origin}/parent-login?error=link_expired`)
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.redirect(`${origin}/parent-login`)
-
-  // If a specific next page was requested (e.g. /set-password), honour it for everyone
   if (next && next.startsWith('/') && next !== '/portal') {
+    console.log('[callback] redirecting to next:', next)
     return NextResponse.redirect(`${origin}${next}`)
   }
+
+  // Default: route by role
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.redirect(`${origin}/parent-login`)
 
   const { data: teacher } = await supabase
     .from('teachers')

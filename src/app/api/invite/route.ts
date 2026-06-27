@@ -39,15 +39,15 @@ export async function POST(request: Request) {
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'invite',
     email,
-    options: { redirectTo: `${APP_URL}/auth/callback?next=/set-password` },
   })
 
   if (linkError) {
     return NextResponse.json({ error: linkError.message }, { status: 400 })
   }
 
-  const userId    = linkData.user.id
-  const inviteUrl = linkData.properties.action_link
+  const userId      = linkData.user.id
+  const tokenHash   = linkData.properties.hashed_token
+  const inviteUrl   = `${APP_URL}/set-password?token_hash=${tokenHash}&type=invite`
 
   // Insert teacher row first
   const { error: dbError } = await admin.from('teachers').upsert(

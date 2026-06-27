@@ -1,4 +1,6 @@
 import type { Config } from "tailwindcss"
+import plugin from "tailwindcss/plugin"
+import tailwindcssAnimate from "tailwindcss-animate"
 
 const config: Config = {
   darkMode: ["class"],
@@ -49,8 +51,22 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      ringWidth: {
+        3: "3px",
+      },
+      backdropBlur: {
+        xs: "2px",
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    tailwindcssAnimate,
+    // base-ui uses data-open / data-closed as boolean attributes for open/close state
+    plugin(({ addVariant }) => {
+      addVariant("data-open", "&[data-open]")
+      addVariant("data-closed", "&[data-closed]")
+      addVariant("supports-backdrop-filter", "@supports (backdrop-filter: blur(0px))")
+    }),
+  ],
 }
 export default config

@@ -111,7 +111,6 @@ export async function POST(req: NextRequest) {
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'invite',
     email: normalizedEmail,
-    options: { redirectTo: `${appUrl}/auth/callback?next=/set-password` },
   })
 
   if (linkError) {
@@ -127,7 +126,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: linkError.message }, { status: 400 })
   }
 
-  const inviteUrl = linkData.properties.action_link
+  const tokenHash = linkData.properties.hashed_token
+  const inviteUrl = `${appUrl}/set-password?token_hash=${tokenHash}&type=invite`
   const { html, text } = buildParentEmail({ inviteUrl, studentName, fromName })
 
   try {

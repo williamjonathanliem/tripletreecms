@@ -2,11 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import { Loader2, Pencil, X, Check, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { InviteTeacherDialog } from './InviteTeacherDialog'
 import { SubjectBadge } from '@/components/ui/SubjectBadge'
+
+const InviteTeacherDialog = dynamic(
+  () => import('./InviteTeacherDialog').then(m => m.InviteTeacherDialog),
+  { ssr: false, loading: () => null }
+)
 import { SUBJECTS, SUBJECT_META, type Subject } from '@/types'
 import type { Teacher } from '@/types'
 import { useCmsLang } from '@/lib/context/cms-lang-context'

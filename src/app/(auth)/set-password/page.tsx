@@ -31,13 +31,19 @@ function SetPasswordForm() {
   useEffect(() => {
     async function init() {
       const hash = typeof window !== 'undefined' ? window.location.hash : ''
+      const url  = typeof window !== 'undefined' ? window.location.href : ''
+      console.log('[set-password] init — url:', url)
+      console.log('[set-password] hash:', hash || '(none)')
+      console.log('[set-password] search:', window.location.search || '(none)')
 
       // 1. Check URL hash (implicit flow — Supabase puts tokens here for invite links)
       if (hash) {
         const params = parseHash(hash)
+        console.log('[set-password] hash params:', JSON.stringify(params))
 
         if (params.error) {
           const desc = params.error_description?.replace(/\+/g, ' ') ?? params.error
+          console.log('[set-password] hash error:', desc)
           setServerError(
             params.error_code === 'otp_expired'
               ? 'This invite link has expired. Please ask HR to send a new invite.'
@@ -48,10 +54,10 @@ function SetPasswordForm() {
         }
 
         if (params.access_token) {
-          // createBrowserClient automatically detects the hash and sets the session in cookies.
-          // Use onAuthStateChange to know exactly when it's ready instead of a fixed delay.
+          console.log('[set-password] found access_token in hash — waiting for auth state change')
           await new Promise<void>((resolve) => {
             const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+              console.log('[set-password] onAuthStateChange event:', _event, 'session:', !!session)
               subscription.unsubscribe()
               if (!session) {
                 setServerError('Could not verify your invite link. Please ask HR to send a new one.')
@@ -59,10 +65,10 @@ function SetPasswordForm() {
               setVerifying(false)
               resolve()
             })
-            // Safety fallback: if the event never fires, check session directly after 3s
             setTimeout(async () => {
               subscription.unsubscribe()
               const { data: { session } } = await supabase.auth.getSession()
+              console.log('[set-password] fallback getSession:', !!session)
               if (!session) {
                 setServerError('Could not verify your invite link. Please ask HR to send a new one.')
               }
@@ -74,12 +80,14 @@ function SetPasswordForm() {
         }
       }
 
-      // 2. Check query params (token_hash flow — scanner-safe)
+      // 2. Check query params (token_hash flow)
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type') as 'invite' | 'recovery' | null
+      console.log('[set-password] token_hash:', tokenHash, 'type:', type)
 
       if (tokenHash && type) {
         const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+        console.log('[set-password] verifyOtp result:', !!data?.session, error?.message)
         if (error || !data?.session) {
           setServerError(
             error?.message
@@ -93,6 +101,7 @@ function SetPasswordForm() {
 
       // 3. Fallback: existing session?
       const { data: { session } } = await supabase.auth.getSession()
+      console.log('[set-password] fallback session:', !!session)
       if (!session) {
         setServerError('This link has expired or is invalid. Please ask HR to send a new invite.')
       }
@@ -103,23 +112,15 @@ function SetPasswordForm() {
 
   async function onSubmit(data: ResetPasswordInput) {
     setServerError('')
+    console.log('[set-password] submitting updateUser')
     const { error } = await supabase.auth.updateUser({ password: data.password })
+    console.log('[set-password] updateUser result:', error?.message ?? 'ok')
     if (error) { setServerError(error.message); return }
 
-    // Route based on role: teachers → dashboard, parents → portal
-    const { data: { user } } = await supabase.auth.getUser()
     setRedirecting(true)
     startNavProgress()
-    if (user) {
-      const { data: teacher } = await supabase
-        .from('teachers')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle()
-      router.push(teacher ? '/dashboard' : '/portal')
-    } else {
-      router.push('/login')
-    }
+    console.log('[set-password] pushing to /dashboard')
+    router.push('/dashboard')
     router.refresh()
   }
 

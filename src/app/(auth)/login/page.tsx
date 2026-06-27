@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,16 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
   const l = CMS_T[lang]
+
+  // If Supabase lands invite/reset tokens on this page (wrong redirect), send to set-password
+  useEffect(() => {
+    const hash = window.location.hash
+    console.log('[login] hash on mount:', hash || '(none)')
+    if (hash.includes('access_token')) {
+      console.log('[login] detected access_token in hash — type:', hash.includes('type=invite') ? 'invite' : 'other')
+      router.replace('/set-password' + hash)
+    }
+  }, [router])
 
   const {
     register,
