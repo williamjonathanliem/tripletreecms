@@ -20,7 +20,7 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
     { data: announcements },
   ] = await Promise.all([
     supabase.from('teachers').select('*').order('created_at'),
-    supabase.from('students').select('id, name, age, tier, branch, subject, fee_status, fee_note, fee_amount, fee_due_date, enrolled_date, teacher_id, parent_contact').order('name'),
+    supabase.from('students').select('id, name, age, tier, branch, subject, fee_status, fee_note, fee_amount, fee_due_date, enrolled_date, teacher_id, parent_contact, parent_email').order('name'),
     supabase.from('classes').select('id, tier, branch, subject').order('created_at'),
     supabase.from('schedule_events').select('*').order('event_date').order('start_time'),
     supabase.from('announcements').select('*').order('created_at', { ascending: false }),
@@ -42,9 +42,10 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
     teacher_id: s.teacher_id,
     teacher_name: teacherMap[s.teacher_id] ?? 'Unknown',
     parent_contact: (s as Record<string, unknown>).parent_contact as string | null ?? null,
+    parent_email: (s as Record<string, unknown>).parent_email as string | null ?? null,
   }))
 
-  const allSubjects: Subject[] = ['coding', 'chinese', 'english', 'maths']
+  const allSubjects: Subject[] = ['coding', 'chinese', 'english', 'maths', 'science', 'calligraphy', 'arts']
 
   const teacherSubjectCounts = Object.fromEntries(
     allSubjects.map(s => [s, (teachers ?? []).filter(t => (t.subjects ?? []).includes(s)).length])

@@ -13,9 +13,13 @@ export const metadata: Metadata = {
   title: 'Triple Tree CMS',
   description: 'Student Management & Class Tracking System',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/logo.png',
+    apple: '/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Triple Tree CMS',
   },
 }
@@ -24,8 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#1A5276" />
+        <meta name="theme-color" content="#1E8449" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" type="image/png" href="/logo.png" />
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>

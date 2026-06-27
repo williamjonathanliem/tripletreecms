@@ -37,8 +37,6 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  console.log(`[MW] ${pathname} | user=${user?.id ?? 'none'} email=${user?.email ?? '-'}`)
-
   // ── Unauthenticated ──────────────────────────────────────────────────────────
   if (!user) {
     if (PARENT_ROUTES.some(r => pathname.startsWith(r)))
@@ -51,43 +49,31 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Authenticated — check whether they are a teacher ────────────────────────
-  const { data: teacher, error: teacherErr } = await supabase
+  const { data: teacher } = await supabase
     .from('teachers')
     .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  console.log(`[MW] teachers query → data=${JSON.stringify(teacher)} err=${teacherErr?.message ?? 'none'}`)
-
   const isTeacher = !!teacher
 
   if (isTeacher) {
-    console.log(`[MW] IS teacher role=${teacher?.role} → checking if blocked from ${pathname}`)
-    // Teacher landing on auth pages or parent portal → send to dashboard
     if (pathname === '/login' || pathname === '/parent-login' ||
         PARENT_ROUTES.some(r => pathname.startsWith(r))) {
-      console.log(`[MW] teacher on parent/auth route → /dashboard`)
       return redirect(request, '/dashboard')
     }
-
-    // HR-only guard
     if (pathname.startsWith('/hr') && teacher?.role !== 'hr') {
       return redirect(request, '/dashboard')
     }
-
     return supabaseResponse
   }
 
-  console.log(`[MW] NOT teacher → parent path. pathname=${pathname}`)
-
   // ── Parent (authenticated but not a teacher) ─────────────────────────────────
   if (TEACHER_ROUTES.some(r => pathname.startsWith(r))) {
-    console.log(`[MW] parent on teacher route → /portal`)
     return redirect(request, '/portal')
   }
 
   if (pathname === '/login' || pathname === '/parent-login') {
-    console.log(`[MW] parent on login → /portal`)
     return redirect(request, '/portal')
   }
 

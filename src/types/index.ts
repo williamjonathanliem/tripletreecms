@@ -1,12 +1,15 @@
-export type Subject = 'coding' | 'chinese' | 'english' | 'maths'
+export type Subject = 'coding' | 'chinese' | 'english' | 'maths' | 'science' | 'calligraphy' | 'arts'
 
-export const SUBJECTS: Subject[] = ['coding', 'chinese', 'english', 'maths']
+export const SUBJECTS: Subject[] = ['coding', 'chinese', 'english', 'maths', 'science', 'calligraphy', 'arts']
 
 export const SUBJECT_META: Record<Subject, { label: string; color: string; bg: string }> = {
-  coding:  { label: 'Coding & Robotics', color: '#1A5276', bg: '#E6F1FB' },
-  chinese: { label: 'Chinese',           color: '#C0392B', bg: '#FDEDEC' },
-  english: { label: 'English',           color: '#7D6608', bg: '#FDFBEC' },
-  maths:   { label: 'Maths',             color: '#1E8449', bg: '#EAF3DE' },
+  coding:      { label: 'Coding & Robotics', color: '#1A5276', bg: '#E6F1FB' },
+  chinese:     { label: 'Chinese',           color: '#C0392B', bg: '#FDEDEC' },
+  english:     { label: 'English',           color: '#7D6608', bg: '#FDFBEC' },
+  maths:       { label: 'Maths',             color: '#1E8449', bg: '#EAF3DE' },
+  science:     { label: 'Science',           color: '#6D4C41', bg: '#EFEBE9' },
+  calligraphy: { label: 'Calligraphy',       color: '#4A235A', bg: '#F3E5F5' },
+  arts:        { label: 'Arts',              color: '#E65100', bg: '#FFF3E0' },
 }
 
 export type Teacher = {

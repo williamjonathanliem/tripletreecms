@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getTeacherContext } from '@/lib/teacher'
+import { getAppUrl } from '@/lib/app-url'
 
 export async function POST(req: NextRequest) {
   const ctx = await getTeacherContext()
@@ -25,8 +26,6 @@ export async function POST(req: NextRequest) {
     .eq('email', normalizedEmail)
     .maybeSingle()
 
-  console.log('[invite-parent] teacher check for', normalizedEmail, '→', existingTeacher)
-
   if (existingTeacher) {
     return NextResponse.json(
       { error: `${normalizedEmail} is already registered as a staff member. Use a different email for the parent account.` },
@@ -41,14 +40,10 @@ export async function POST(req: NextRequest) {
     .eq('id', studentId)
 
   if (updateError) {
-    console.error('[invite-parent] update error:', updateError)
     return NextResponse.json({ error: `Could not save email: ${updateError.message}` }, { status: 500 })
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    'http://localhost:3000'
+  const appUrl = getAppUrl()
 
   const redirectTo = `${appUrl}/auth/callback?next=/set-password`
 
@@ -76,7 +71,6 @@ export async function POST(req: NextRequest) {
     })
 
     if (magicError) {
-      console.error('[invite-parent] magic link error:', magicError)
       return NextResponse.json({
         ok: true,
         method: 'existing',
@@ -87,6 +81,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, method: 'magic' })
   }
 
-  console.error('[invite-parent] invite error:', inviteError)
   return NextResponse.json({ error: inviteError.message }, { status: 500 })
 }

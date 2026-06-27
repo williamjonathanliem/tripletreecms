@@ -1,0 +1,25 @@
+{
+  "name": "Triple Tree — Student Registration",
+  "short_name": "TT Register",
+  "description": "Register your child for Triple Tree Enrichment Centre classes",
+  "start_url": "/form",
+  "scope": "/form",
+  "display": "standalone",
+  "background_color": "#1E8449",
+  "theme_color": "#1E8449",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

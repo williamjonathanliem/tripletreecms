@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getTeacherContext } from '@/lib/teacher'
+import { getAppUrl } from '@/lib/app-url'
 
 export type ParentAccount = {
   email: string
@@ -101,10 +102,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'resend') {
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ??
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      'http://localhost:3000'
+    const appUrl = getAppUrl()
 
     // If user already has an account, send a fresh magic link
     if (userId) {

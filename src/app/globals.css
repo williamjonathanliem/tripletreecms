@@ -37,4 +37,23 @@
   .text-balance {
     text-wrap: balance;
   }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* iOS & macOS WebKit fixes */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select, textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* Smooth momentum scrolling on iOS */
+.overflow-y-auto, .overflow-y-scroll {
+  -webkit-overflow-scrolling: touch;
 }

@@ -30,27 +30,20 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  console.log(`[callback] code=${code?.slice(0,8)}... next=${next}`)
-
   const { error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
-    console.error('[callback] exchangeCodeForSession error:', error.message)
     return NextResponse.redirect(`${origin}/parent-login?error=link_expired`)
   }
 
   const { data: { user } } = await supabase.auth.getUser()
-  console.log(`[callback] user=${user?.id} email=${user?.email}`)
   if (!user) return NextResponse.redirect(`${origin}/parent-login`)
 
-  const { data: teacher, error: teacherErr } = await supabase
+  const { data: teacher } = await supabase
     .from('teachers')
     .select('id')
     .eq('id', user.id)
     .maybeSingle()
 
-  console.log(`[callback] teachers query → data=${JSON.stringify(teacher)} err=${teacherErr?.message ?? 'none'}`)
-
   const destination = teacher ? '/dashboard' : (next.startsWith('/') ? next : '/portal')
-  console.log(`[callback] → redirecting to ${destination}`)
   return NextResponse.redirect(`${origin}${destination}`)
 }

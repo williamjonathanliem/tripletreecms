@@ -2,10 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { getAppUrl } from '@/lib/app-url'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const APP_URL      = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const APP_URL      = getAppUrl()
 
 export async function POST(request: Request) {
   const cookieStore = await cookies()
@@ -47,7 +48,6 @@ export async function POST(request: Request) {
   })
 
   const inviteBody = await inviteRes.json().catch(() => ({}))
-  console.log('[invite API] status:', inviteRes.status, 'body:', JSON.stringify(inviteBody))
 
   if (!inviteRes.ok) {
     return NextResponse.json(
@@ -58,7 +58,6 @@ export async function POST(request: Request) {
 
   const invited = inviteBody
   const userId: string = invited.id
-  console.log('[invite API] invited user id:', userId, 'email:', invited.email)
 
   const admin = createAdminClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },

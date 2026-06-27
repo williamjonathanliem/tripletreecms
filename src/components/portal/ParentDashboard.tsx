@@ -37,6 +37,8 @@ type EnrichedChild = {
   enrolled_date: string
   fee_status: string | null
   fee_note: string | null
+  fee_amount: string | null
+  fee_due_date: string | null
   teacher_name: string
   teacher_email: string | null
   modules: string[]
@@ -557,10 +559,22 @@ function FeesTab({ students, t, lang }: { students: EnrichedChild[]; t: PortalT;
                       style={{ background: `${fee.color}20` }}>
                       <FeeIcon className="w-6 h-6" style={{ color: fee.color }} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-base font-black" style={{ color: fee.color }}>{fee.label}</p>
                       <p className="text-sm mt-0.5" style={{ color: `${fee.color}99` }}>{fee.sublabel}</p>
                     </div>
+                    {child.fee_amount && (
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-black" style={{ color: fee.color }}>
+                          RM {parseFloat(child.fee_amount).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        {child.fee_due_date && child.fee_status !== 'paid' && (
+                          <p className="text-[11px] mt-0.5" style={{ color: `${fee.color}99` }}>
+                            {lang === 'zh' ? '到期：' : 'Due: '}{formatDate(child.fee_due_date)}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {child.fee_note && (
                     <div className="mt-3 pt-3 border-t" style={{ borderColor: fee.border }}>

@@ -31,10 +31,6 @@ function SetPasswordForm() {
   useEffect(() => {
     async function init() {
       const hash = typeof window !== 'undefined' ? window.location.hash : ''
-      const fullUrl = typeof window !== 'undefined' ? window.location.href : ''
-      console.log('[set-password] full URL:', fullUrl)
-      console.log('[set-password] hash:', hash)
-      console.log('[set-password] search:', window.location.search)
 
       // 1. Check URL hash (implicit flow — Supabase puts tokens here for invite links)
       if (hash) {
@@ -81,12 +77,9 @@ function SetPasswordForm() {
       // 2. Check query params (token_hash flow — scanner-safe)
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type') as 'invite' | 'recovery' | null
-      console.log('[set-password] token_hash:', tokenHash, 'type:', type)
 
       if (tokenHash && type) {
-        console.log('[set-password] calling verifyOtp...')
         const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
-        console.log('[set-password] verifyOtp result:', { session: data?.session?.user?.email, error })
         if (error || !data?.session) {
           setServerError(
             error?.message
@@ -100,7 +93,6 @@ function SetPasswordForm() {
 
       // 3. Fallback: existing session?
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('[set-password] fallback session:', session?.user?.email)
       if (!session) {
         setServerError('This link has expired or is invalid. Please ask HR to send a new invite.')
       }
