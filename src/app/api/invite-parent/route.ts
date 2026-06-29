@@ -126,6 +126,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: linkError.message }, { status: 400 })
   }
 
+  // The auth.users INSERT trigger may auto-create a teachers row for the new user.
+  // Remove it immediately so the parent is not treated as staff.
+  if (linkData.user?.id) {
+    await admin.from('teachers').delete().eq('id', linkData.user.id)
+  }
+
   const tokenHash = linkData.properties.hashed_token
   const inviteUrl = `${appUrl}/set-password?token_hash=${tokenHash}&type=invite`
   const { html, text } = buildParentEmail({ inviteUrl, studentName, fromName })
