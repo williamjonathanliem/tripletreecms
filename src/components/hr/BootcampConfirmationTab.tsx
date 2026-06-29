@@ -352,10 +352,6 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
   // ── Class derived values ──
   const selectedClassSubject = CLASS_SUBJECTS.find(s => s.value === classSubject)
   const classColor = selectedClassSubject?.color ?? '#6B7280'
-  const classBg = selectedClassSubject?.bg ?? '#F9FAFB'
-  const displaySubjectName = classSubject === 'custom'
-    ? customSubjectName
-    : (lang === 'zh' ? selectedClassSubject?.label_zh : selectedClassSubject?.label_en) ?? ''
   const classTotalFee = monthlyFee ? Math.round(parseFloat(monthlyFee) * parseInt(months || '1', 10)) : 0
 
   function handleBootcampChange(b: BootcampType) {
@@ -488,9 +484,6 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
     setWorkshopTime(''); setWorkshopDuration(''); setWorkshopVenue('')
     setWorkshopFee(''); setWorkshopFeeLabel(''); setCustomTerms([])
   }
-
-  // ── Common fee block (class + workshop) ───────────────────────────────────
-  const feeAmount = mode === 'bootcamp' ? bcFeeAmount : mode === 'class' ? classTotalFee : (parseFloat(workshopFee) || 0)
 
   return (
     <div className="space-y-6 max-w-3xl">
