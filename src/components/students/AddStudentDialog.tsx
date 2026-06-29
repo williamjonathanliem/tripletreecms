@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { StudentForm } from './StudentForm'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
@@ -18,10 +18,7 @@ export function AddStudentDialog() {
         <Plus className="w-4 h-4 mr-2" />{t.students.add_student}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t.students.add_dialog_title}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl">
           <StudentForm onClose={() => setOpen(false)} />
         </DialogContent>
       </Dialog>

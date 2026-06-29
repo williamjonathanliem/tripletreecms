@@ -9,24 +9,46 @@ Font.register({
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+export type ConfirmationMode = 'bootcamp' | 'class' | 'workshop'
 export type BootcampType = 'coding' | 'english' | 'math'
 export type FeeType = 'standard' | 'early_bird'
 export type PaymentStatus = 'paid' | 'deposit' | 'pending'
 
 export type ConfirmationData = {
-  bootcamp_type: BootcampType
+  // Mode: 'bootcamp' (default for backward compat), 'class', 'workshop'
+  mode?: ConfirmationMode
+
+  // Bootcamp-specific (used when mode === 'bootcamp')
+  bootcamp_type?: BootcampType
+  age_group?: string
+  fee_type?: FeeType
+
+  // Universal program override (required for class/workshop, optional for bootcamp)
+  program_name?: string     // full display name shown on PDF badge
+  program_color?: string    // hex color for badge background
+  fee_amount?: number       // total fee amount (overrides bootcamp config)
+  fee_label?: string        // label for the fee row (e.g. "Monthly Tuition Fee")
+  duration_label?: string   // e.g. "10 Days · 2 Hrs/Day · 20 Total Hrs" or "Every Tue & Thu"
+  venue?: string            // override venue string
+  custom_terms?: string[]   // override T&C bullet points
+
+  // Student info (all shared)
   student_name: string
-  student_age: string
-  age_group: string
-  parent_name: string
-  contact: string
-  email: string
+  student_age?: string
+  parent_name?: string
+  contact?: string
+  email?: string
+
+  // Dates & time
   start_date: string
-  end_date: string
-  class_time: string
-  fee_type: FeeType
+  end_date?: string
+  class_time?: string
+
+  // Payment
   payment_status: PaymentStatus
-  amount_paid: string
+  amount_paid?: string
+
+  // Meta
   confirmation_number: string
   issue_date: string
   issued_by: string
@@ -55,6 +77,7 @@ const PDF_T = {
     start_date: 'Start Date',
     end_date: 'End Date',
     class_time: 'Class Time',
+    schedule: 'Schedule',
     duration: 'Duration',
     venue: 'Venue',
     fee_standard: 'Program Fee (Standard)',
@@ -76,12 +99,26 @@ const PDF_T = {
     date_line: 'Date: ____________________________',
     issued_by: 'Issued by:',
     stamp: 'Stamp & Authorized Signature',
-    terms: [
+    bootcamp_terms: [
       'Fees paid are non-refundable once enrollment is confirmed.',
       'Students are encouraged to attend all 10 days to ensure full learning continuity.',
       'Please bring your own laptop or device (Coding Bootcamp participants).',
       'Triple Tree Enrichment Centre reserves the right to reschedule sessions due to unforeseen circumstances.',
       'A certificate of completion will be awarded upon finishing the program.',
+    ],
+    class_terms: [
+      'Tuition fees are due on the first week of each enrolled month.',
+      'Three days\' notice is required for cancellations; missed sessions may not be rescheduled.',
+      'Students are expected to maintain regular attendance for optimal progress.',
+      'Triple Tree Enrichment Centre reserves the right to adjust schedules due to unforeseen circumstances.',
+      'Learning materials and resources are included in the monthly tuition fee.',
+    ],
+    workshop_terms: [
+      'Registration fees are non-refundable once confirmed.',
+      'Please arrive 10 minutes before the workshop starts.',
+      'All required materials will be provided unless otherwise stated.',
+      'Triple Tree Enrichment Centre reserves the right to cancel or reschedule due to unforeseen circumstances.',
+      'A certificate of participation will be awarded upon completion.',
     ],
     footer_left: 'Triple Tree Enrichment Centre  ·  L2-12, 1 Mont Kiara, KL  ·  +6017-494 3238',
     footer_right: 'This is an official enrollment confirmation document. Ref:',
@@ -104,6 +141,7 @@ const PDF_T = {
     start_date: '开始日期',
     end_date: '结束日期',
     class_time: '上课时间',
+    schedule: '上课时间表',
     duration: '课程时长',
     venue: '上课地点',
     fee_standard: '课程费用（标准）',
@@ -125,12 +163,26 @@ const PDF_T = {
     date_line: '日期：____________________________',
     issued_by: '发出者：',
     stamp: '盖章及授权签名',
-    terms: [
+    bootcamp_terms: [
       '报名确认后，所缴费用不予退还。',
       '鼓励学生出席全部10天课程，以确保学习效果。',
       '请自备笔记本电脑或设备（编程训练营学员）。',
       '三树丰富教育中心保留因不可预见情况调整课程时间的权利。',
       '完成课程后将颁发结业证书。',
+    ],
+    class_terms: [
+      '每月学费须在报名月份的第一周缴清。',
+      '取消课程须提前三天通知；已缺席课程可能无法补课。',
+      '学生须保持正常出席率以确保学习进度。',
+      '三树丰富教育中心保留因不可预见情况调整课程时间的权利。',
+      '月费已包含学习材料及资源。',
+    ],
+    workshop_terms: [
+      '确认报名后，所缴费用不予退还。',
+      '请提前10分钟到达工作坊现场。',
+      '所需材料将由主办方提供，另有说明者除外。',
+      '三树丰富教育中心保留因不可预见情况取消或调整活动的权利。',
+      '完成工作坊后将颁发参与证书。',
     ],
     footer_left: 'Triple Tree Enrichment Centre  ·  L2-12, 1 Mont Kiara, KL  ·  +6017-494 3238',
     footer_right: '此为官方入学确认书。参考编号：',
@@ -167,9 +219,9 @@ const BOOTCAMP_CONFIG: Record<BootcampType, {
   },
 }
 
-const GREEN = '#1E8449'
-const DARK = '#1C2833'
-const GRAY = '#717D7E'
+const GREEN  = '#1E8449'
+const DARK   = '#1C2833'
+const GRAY   = '#717D7E'
 const LIGHT_GRAY = '#F2F3F4'
 const BORDER = '#D5D8DC'
 
@@ -253,15 +305,45 @@ function fmtRM(amount: number) {
 // ── Document ───────────────────────────────────────────────────────────────
 
 export function BootcampConfirmationDocument(data: ConfirmationData) {
-  const lang = data.lang ?? 'en'
-  const t = PDF_T[lang]
+  const lang    = data.lang ?? 'en'
+  const t       = PDF_T[lang]
+  const mode    = data.mode ?? 'bootcamp'
   const useNoto = lang === 'zh'
   const fontFamily = useNoto ? 'NotoSansSC' : 'Helvetica'
   const fontBold   = useNoto ? 'NotoSansSC' : 'Helvetica-Bold'
 
-  const cfg = BOOTCAMP_CONFIG[data.bootcamp_type]
-  const cfgName = lang === 'zh' ? cfg.name_zh : cfg.name_en
-  const feeAmount = data.fee_type === 'early_bird' ? cfg.early_bird : cfg.standard
+  // ── Resolve program config from mode ──────────────────────────────────────
+  let programName: string
+  let programColor: string
+  let feeAmount: number
+  let feeLabelText: string
+  let durationText: string | undefined
+  let venueText: string
+  let terms: string[]
+
+  if (mode === 'bootcamp' && data.bootcamp_type) {
+    const cfg    = BOOTCAMP_CONFIG[data.bootcamp_type]
+    programName  = lang === 'zh' ? cfg.name_zh : cfg.name_en
+    programColor = data.program_color ?? cfg.color
+    feeAmount    = data.fee_amount ?? (data.fee_type === 'early_bird' ? cfg.early_bird : cfg.standard)
+    feeLabelText = data.fee_label ?? (data.fee_type === 'early_bird' ? t.fee_early_bird : t.fee_standard)
+    durationText = data.duration_label ?? (
+      lang === 'zh'
+        ? `${cfg.days}${t.days} · ${cfg.hours_per_day}${t.hrs_day} · 共${cfg.hours}小时`
+        : `${cfg.days} ${t.days} · ${cfg.hours_per_day} ${t.hrs_day} · ${cfg.hours} ${t.total_hrs}`
+    )
+    venueText    = data.venue ?? t.venue_val
+    terms        = data.custom_terms ?? t.bootcamp_terms
+  } else {
+    programName  = data.program_name ?? '—'
+    programColor = data.program_color ?? '#1A5276'
+    feeAmount    = data.fee_amount ?? 0
+    feeLabelText = data.fee_label ?? (mode === 'workshop' ? 'Workshop Fee' : 'Program Fee')
+    durationText = data.duration_label
+    venueText    = data.venue ?? t.venue_val
+    terms        = data.custom_terms ?? (mode === 'workshop' ? t.workshop_terms : t.class_terms)
+  }
+
   const paidAmount = data.amount_paid
     ? parseFloat(data.amount_paid)
     : (data.payment_status === 'paid' ? feeAmount : 0)
@@ -272,32 +354,26 @@ export function BootcampConfirmationDocument(data: ConfirmationData) {
     data.payment_status === 'deposit' ? t.status_deposit :
     t.status_pending
 
-  const durationText = lang === 'zh'
-    ? `${cfg.days}${t.days} · ${cfg.hours_per_day}${t.hrs_day} · 共${cfg.hours}小时`
-    : `${cfg.days} ${t.days} · ${cfg.hours_per_day} ${t.hrs_day} · ${cfg.hours} ${t.total_hrs}`
-
   const ageText = data.student_age
     ? (lang === 'zh' ? `${data.student_age}${t.years_old}` : `${data.student_age} ${t.years_old}`)
     : '—'
 
-  const feeLabelText = data.fee_type === 'early_bird' ? t.fee_early_bird : t.fee_standard
-
   const studentFields: [string, string][] = [
     [t.student_name, data.student_name || '—'],
-    [t.age,          ageText],
-    [t.age_group,    data.age_group || '—'],
-    [t.parent,       data.parent_name || '—'],
-    [t.contact,      data.contact || '—'],
-    [t.email,        data.email || '—'],
+    [t.age, ageText],
+    ...(data.age_group ? [[t.age_group, data.age_group] as [string, string]] : []),
+    [t.parent, data.parent_name || '—'],
+    [t.contact, data.contact || '—'],
+    [t.email, data.email || '—'],
   ]
 
   const programFields: [string, string][] = [
-    [t.program,    cfgName],
+    [t.program, programName],
     [t.start_date, fmt(data.start_date)],
-    [t.end_date,   fmt(data.end_date)],
-    [t.class_time, data.class_time || '—'],
-    [t.duration,   durationText],
-    [t.venue,      t.venue_val],
+    ...(data.end_date ? [[t.end_date, fmt(data.end_date)] as [string, string]] : []),
+    ...(data.class_time ? [[(mode === 'class' ? t.schedule : t.class_time), data.class_time] as [string, string]] : []),
+    ...(durationText ? [[t.duration, durationText] as [string, string]] : []),
+    [t.venue, venueText],
   ]
 
   return (
@@ -320,11 +396,11 @@ export function BootcampConfirmationDocument(data: ConfirmationData) {
           </View>
         </View>
 
-        {/* ── Title ── */}
+        {/* ── Title Band ── */}
         <View style={s.titleBand}>
           <Text style={[s.confirmTitle, { fontFamily: fontBold }]}>{t.title}</Text>
-          <View style={[s.bootcampBadge, { backgroundColor: cfg.color }]}>
-            <Text style={[s.bootcampBadgeText, { fontFamily: fontBold }]}>{cfgName.toUpperCase()}</Text>
+          <View style={[s.bootcampBadge, { backgroundColor: programColor }]}>
+            <Text style={[s.bootcampBadgeText, { fontFamily: fontBold }]}>{programName.toUpperCase()}</Text>
           </View>
           <View style={s.refRow}>
             <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -407,7 +483,7 @@ export function BootcampConfirmationDocument(data: ConfirmationData) {
               <Text style={[s.termsHeaderText, { fontFamily: fontBold }]}>{t.terms_title}</Text>
             </View>
             <View style={s.termsBody}>
-              {t.terms.map((term, i) => (
+              {terms.map((term, i) => (
                 <View key={i} style={s.termLine}>
                   <Text style={[s.termBullet, { fontFamily }]}>•</Text>
                   <Text style={[s.termText, { fontFamily }]}>{term}</Text>

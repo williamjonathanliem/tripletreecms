@@ -208,88 +208,89 @@ function TrialCard({ trial }: { trial: TrialStudent }) {
       }`}>
         <div className="h-1 w-full" style={{ background: followUp ? '#F59E0B' : color }} />
 
-        <div className="p-5">
-          <div className="flex items-start gap-4">
-            {/* Avatar */}
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
-              style={{ backgroundColor: color }}>
-              {getInitials(trial.name)}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <p className="font-bold text-gray-900">{trial.name}</p>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: badge.bg, color: badge.color }}>
-                  {badge.label}
-                </span>
-                {followUp && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
-                    {t.trial.follow_up_badge}
-                  </span>
-                )}
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+            {/* Avatar + Info */}
+            <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+                style={{ backgroundColor: color }}>
+                {getInitials(trial.name)}
               </div>
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 items-center">
-                <span>{t.trial.age_label} {trial.age}</span>
-                {trial.subject && (
-                  <span className="font-semibold px-2 py-0.5 rounded-full text-[11px]"
-                    style={{ color: SUBJECT_META[trial.subject]?.color, background: SUBJECT_META[trial.subject]?.bg }}>
-                    {SUBJECT_META[trial.subject]?.label}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <p className="font-bold text-gray-900">{trial.name}</p>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: badge.bg, color: badge.color }}>
+                    {badge.label}
                   </span>
-                )}
-                <span className="font-semibold" style={{ color }}>{trial.tier}</span>
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="w-3 h-3" /> {trial.trial_date}
-                </span>
-              </div>
-
-              {/* Parent info */}
-              {(trial.parent_name || trial.parent_contact) && (
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 items-center">
-                  {trial.parent_name && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <User className="w-3 h-3" /> {trial.parent_name}
+                  {followUp && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
+                      {t.trial.follow_up_badge}
                     </span>
-                  )}
-                  {trial.parent_contact && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> {trial.parent_contact}
-                    </span>
-                  )}
-                  {trial.parent_contact && (
-                    <a href={toWhatsApp(trial.parent_contact, trial.name)} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
-                      <MessageCircle className="w-3 h-3" /> WhatsApp
-                    </a>
                   )}
                 </div>
-              )}
 
-              {trial.notes && (
-                <p className="text-xs text-gray-400 italic mt-1.5">{trial.notes}</p>
-              )}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 items-center">
+                  <span>{t.trial.age_label} {trial.age}</span>
+                  {trial.subject && (
+                    <span className="font-semibold px-2 py-0.5 rounded-full text-[11px]"
+                      style={{ color: SUBJECT_META[trial.subject]?.color, background: SUBJECT_META[trial.subject]?.bg }}>
+                      {SUBJECT_META[trial.subject]?.label}
+                    </span>
+                  )}
+                  <span className="font-semibold" style={{ color }}>{trial.tier}</span>
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" /> {trial.trial_date}
+                  </span>
+                </div>
+
+                {/* Parent info */}
+                {(trial.parent_name || trial.parent_contact) && (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 items-center">
+                    {trial.parent_name && (
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <User className="w-3 h-3" /> {trial.parent_name}
+                      </span>
+                    )}
+                    {trial.parent_contact && (
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {trial.parent_contact}
+                      </span>
+                    )}
+                    {trial.parent_contact && (
+                      <a href={toWhatsApp(trial.parent_contact, trial.name)} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
+                        <MessageCircle className="w-3 h-3" /> WhatsApp
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {trial.notes && (
+                  <p className="text-xs text-gray-400 italic mt-1.5">{trial.notes}</p>
+                )}
+              </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-2 shrink-0">
+            {/* Actions — row on mobile, column on sm+ */}
+            <div className="flex sm:flex-col gap-2 sm:shrink-0 flex-wrap">
               {trial.outcome === 'pending' && (
                 <>
                   <button onClick={() => setEnrollOpen(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-colors"
+                    className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold text-white transition-colors"
                     style={{ background: '#1E8449' }}>
                     <UserCheck className="w-3.5 h-3.5" /> {t.trial.enroll_btn}
                   </button>
                   {!confirmDrop ? (
                     <button onClick={() => setConfirmDrop(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                      className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-colors"
                       style={{ background: '#FDEDEC', color: '#CB4335' }}>
                       <UserX className="w-3.5 h-3.5" /> {t.trial.drop_btn}
                     </button>
                   ) : (
                     <button onClick={handleDrop} disabled={loading === 'drop'}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white transition-colors disabled:opacity-60">
+                      className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white transition-colors disabled:opacity-60">
                       {loading === 'drop' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
                       Confirm
                     </button>
@@ -297,7 +298,7 @@ function TrialCard({ trial }: { trial: TrialStudent }) {
                 </>
               )}
               <button onClick={toggleFollowUp} disabled={loading === 'followup'}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-60 ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-60 ${
                   followUp ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                 }`}>
                 {loading === 'followup'

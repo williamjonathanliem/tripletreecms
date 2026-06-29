@@ -222,8 +222,65 @@ export function StudentTable({ students }: { students: Student[] }) {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-gray-100 overflow-hidden bg-white shadow-sm">
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-2">
+        {table.getRowModel().rows.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-100 py-10 text-center">
+            <p className="text-sm text-gray-400">{t.students.no_students}</p>
+          </div>
+        ) : (
+          table.getRowModel().rows.map(row => {
+            const s = row.original
+            const color = TIER_COLORS[s.tier] || SUBJECT_META[s.subject]?.color || '#6B7280'
+            const pct = s.module_total > 0 ? (s.module_current / s.module_total) * 100 : 0
+            const meta = SUBJECT_META[s.subject]
+            const feeCfg: Record<string, { label: string; color: string; bg: string }> = {
+              paid:    { label: t.students.fee_paid,    color: '#1E8449', bg: '#EAFAF1' },
+              unpaid:  { label: t.students.fee_unpaid,  color: '#CB4335', bg: '#FDEDEC' },
+              partial: { label: t.students.fee_partial, color: '#B7770D', bg: '#FEF9E7' },
+            }
+            const fc = feeCfg[s.fee_status ?? 'unpaid'] ?? feeCfg.unpaid
+            return (
+              <Link key={s.id} href={`/students/${s.id}`}
+                className="block bg-white rounded-xl border border-gray-100 shadow-sm p-4 active:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                    style={{ backgroundColor: color }}>
+                    {getInitials(s.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-gray-900 text-sm">{s.name}</p>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                        style={{ color: fc.color, background: fc.bg }}>{fc.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-gray-400">{t.students.age} {s.age}</span>
+                      {meta && (
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
+                          style={{ color: meta.color, background: meta.bg }}>{meta.label}</span>
+                      )}
+                      <span className="text-xs text-gray-500">{s.tier} · {s.branch}</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>{s.module_current}/{s.module_total} modules</span>
+                    <span>{Math.round(pct)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                  </div>
+                </div>
+              </Link>
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-xl border border-gray-100 overflow-hidden bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             {table.getHeaderGroups().map(hg => (

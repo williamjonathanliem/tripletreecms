@@ -81,13 +81,13 @@ export function ClassLogView({ classes, allLogs, defaultClassId, defaultTab }: P
   const [tab, setTab] = useState<'log' | 'history'>(defaultTab)
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-5">
-      <div className="flex items-start justify-between">
+    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.feedback.class_log_title}</h1>
           <p className="text-sm text-gray-400 mt-0.5">{t.feedback.class_log_subtitle}</p>
         </div>
-        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl self-start">
           <button
             onClick={() => setTab('log')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${

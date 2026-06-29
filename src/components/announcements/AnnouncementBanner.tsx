@@ -32,7 +32,7 @@ export function AnnouncementBanner({ announcements }: { announcements: Announcem
   }
 
   return (
-    <div className="space-y-2 mb-6">
+    <div className="space-y-2">
       {visible.map(a => (
         <div key={a.id} className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
           <Megaphone className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />

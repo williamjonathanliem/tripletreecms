@@ -150,7 +150,7 @@ export function Sidebar({ role, subjects }: SidebarProps) {
   }
 
   return (
-    <aside className="w-60 h-screen sticky top-0 bg-white border-r border-gray-100 flex flex-col shrink-0">
+    <aside className="hidden md:flex w-60 h-screen sticky top-0 bg-white border-r border-gray-100 flex-col shrink-0">
       {/* Logo */}
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">

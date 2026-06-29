@@ -51,8 +51,8 @@ export function HRView({
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>
-        <p className="text-sm text-gray-400 mt-0.5">{headingSub}</p>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">{heading}</h1>
+        <p className="text-xs md:text-sm text-gray-400 mt-0.5">{headingSub}</p>
       </div>
       {tab === 'overview' && (
         <OverviewTab

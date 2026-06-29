@@ -63,7 +63,7 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
   }).length
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-5">
+    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
       <HRView
         defaultTab={params?.tab ?? 'overview'}
         teachers={(teachers ?? []) as Teacher[]}

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { StudentForm } from './StudentForm'
 import type { Student } from '@/types'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
@@ -19,10 +19,7 @@ export function EditStudentDialog({ student }: { student: Student }) {
         <Pencil className="w-4 h-4" /> {t.common.edit}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t.students.edit_dialog_title}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl">
           <StudentForm student={student} onClose={() => setOpen(false)} />
         </DialogContent>
       </Dialog>

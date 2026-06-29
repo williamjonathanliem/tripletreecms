@@ -59,12 +59,26 @@ const TO_SUBJECT: Record<string, string> = {
   coding: 'coding', mandarin: 'chinese', science: 'coding',
 }
 
-function LevelDisplay({ value }: { value: string }) {
+const LEVEL_STYLE: Record<string, { bg: string; text: string }> = {
+  strong:                { bg: '#EAFAF1', text: '#1E8449' },
+  moderate:              { bg: '#FEF9E7', text: '#B7770D' },
+  weak:                  { bg: '#FDEDEC', text: '#922B21' },
+  zero_basic:            { bg: '#F2F3F4', text: '#6B7280' },
+  understand_cant_speak: { bg: '#EBF5FB', text: '#1A5276' },
+  can_speak_simple:      { bg: '#EBF5FB', text: '#1A5276' },
+  can_speak_write_basic: { bg: '#EAFAF1', text: '#1E8449' },
+}
+
+function LevelPill({ value }: { value: string }) {
   const entry = LEVEL_MAP[value]
-  if (!entry) return <span>{value}</span>
+  const style = LEVEL_STYLE[value] ?? { bg: '#F2F3F4', text: '#6B7280' }
+  if (!entry) return <span className="text-xs text-gray-500">{value}</span>
   return (
-    <span>
-      {entry.en} <span className="text-gray-400">· {entry.zh}</span>
+    <span
+      className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full"
+      style={{ background: style.bg, color: style.text }}
+    >
+      {entry.en}
     </span>
   )
 }
@@ -263,64 +277,112 @@ function SubmissionRow({ sub, teachers, onRefresh }: {
       </tr>
 
       {expanded && (
-        <tr className="bg-gray-50">
-          <td colSpan={7} className="px-5 py-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs text-gray-600">
-              {sub.school_grade && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_school_grade}</p>
-                  <p>{sub.school_grade}</p>
-                </div>
-              )}
-              {sub.parent_name && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_parent}</p>
-                  <p>{sub.parent_name}</p>
-                </div>
-              )}
-              {sub.dominant_language && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_language}</p>
-                  <p className="capitalize">
-                    {sub.dominant_language}
-                    {sub.dominant_language_other ? ` (${sub.dominant_language_other})` : ''}
+        <tr>
+          <td colSpan={7} className="px-4 pt-0 pb-4 bg-white">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
+              <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+
+                {/* Left — contact & personal */}
+                <div className="p-4 space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    {t.hr_submissions.detail_parent} &amp; Contact
                   </p>
+                  <div className="space-y-2">
+                    {sub.parent_name && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-semibold text-gray-400 w-16 shrink-0">
+                          {t.hr_submissions.detail_parent}
+                        </span>
+                        <span className="text-sm font-semibold text-gray-800">{sub.parent_name}</span>
+                      </div>
+                    )}
+                    {sub.contact && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-semibold text-gray-400 w-16 shrink-0">
+                          {t.hr_submissions.col_contact}
+                        </span>
+                        <a href={`tel:${sub.contact}`} className="text-sm text-[#1A5276] font-medium hover:underline">
+                          {sub.contact}
+                        </a>
+                      </div>
+                    )}
+                    {sub.email && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-semibold text-gray-400 w-16 shrink-0">Email</span>
+                        <a href={`mailto:${sub.email}`} className="text-sm text-[#1A5276] font-medium hover:underline truncate">
+                          {sub.email}
+                        </a>
+                      </div>
+                    )}
+                    {sub.school_grade && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-semibold text-gray-400 w-16 shrink-0">
+                          {t.hr_submissions.detail_school_grade}
+                        </span>
+                        <span className="text-sm text-gray-700">{sub.school_grade}</span>
+                      </div>
+                    )}
+                    {sub.dominant_language && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-semibold text-gray-400 w-16 shrink-0">
+                          {t.hr_submissions.detail_language}
+                        </span>
+                        <span className="text-sm text-gray-700 capitalize">
+                          {sub.dominant_language}
+                          {sub.dominant_language_other ? ` (${sub.dominant_language_other})` : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {sub.level_mandarin && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_mandarin_level}</p>
-                  <LevelDisplay value={sub.level_mandarin} />
+
+                {/* Right — academic levels + skills */}
+                <div className="p-4 space-y-4">
+                  {/* Academic levels */}
+                  {(sub.level_mandarin || sub.level_english || sub.level_maths || sub.level_coding) && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Academic Level</p>
+                      <div className="space-y-1.5">
+                        {([
+                          ['Mandarin', sub.level_mandarin],
+                          ['English',  sub.level_english],
+                          ['Maths',    sub.level_maths],
+                          ['Coding',   sub.level_coding],
+                        ] as [string, string | null][]).filter(([, v]) => v).map(([label, value]) => (
+                          <div key={label} className="flex items-center gap-2">
+                            <span className="text-[10px] font-semibold text-gray-500 w-14 shrink-0">{label}</span>
+                            <LevelPill value={value!} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {sub.interested_skills?.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        {t.hr_submissions.detail_skills}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sub.interested_skills.map(s => (
+                          <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-gray-200 text-gray-600">
+                            {SKILL_MAP[s] ?? s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {sub.level_english && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_english_level}</p>
-                  <LevelDisplay value={sub.level_english} />
-                </div>
-              )}
-              {sub.level_maths && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_maths_level}</p>
-                  <LevelDisplay value={sub.level_maths} />
-                </div>
-              )}
-              {sub.level_coding && (
-                <div>
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_coding_level}</p>
-                  <LevelDisplay value={sub.level_coding} />
-                </div>
-              )}
-              {sub.interested_skills?.length > 0 && (
-                <div className="col-span-2">
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_skills}</p>
-                  <p>{sub.interested_skills.map(s => SKILL_MAP[s] ?? s).join(' · ')}</p>
-                </div>
-              )}
+              </div>
+
+              {/* Focus area — full width at bottom */}
               {sub.focus_area && (
-                <div className="col-span-3">
-                  <p className="font-semibold text-gray-500 mb-0.5">{t.hr_submissions.detail_focus}</p>
-                  <p className="text-gray-700">{sub.focus_area}</p>
+                <div className="px-4 py-3 border-t border-gray-100 bg-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                    {t.hr_submissions.detail_focus}
+                  </p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{sub.focus_area}</p>
                 </div>
               )}
             </div>
