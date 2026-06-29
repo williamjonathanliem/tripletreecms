@@ -112,15 +112,18 @@ function SetPasswordForm() {
 
   async function onSubmit(data: ResetPasswordInput) {
     setServerError('')
-    console.log('[set-password] submitting updateUser')
     const { error } = await supabase.auth.updateUser({ password: data.password })
-    console.log('[set-password] updateUser result:', error?.message ?? 'ok')
     if (error) { setServerError(error.message); return }
 
     setRedirecting(true)
     startNavProgress()
-    console.log('[set-password] pushing to /dashboard')
-    router.push('/dashboard')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: teacher } = user
+      ? await supabase.from('teachers').select('id').eq('id', user.id).maybeSingle()
+      : { data: null }
+
+    router.push(teacher ? '/dashboard' : '/portal')
     router.refresh()
   }
 
