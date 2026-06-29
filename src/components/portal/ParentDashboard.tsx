@@ -86,7 +86,7 @@ function Avatar({ name, color, size = 40 }: { name: string; color: string; size?
 
 // ─── Right panel — always visible on xl ──────────────────────────────────────
 
-function RightPanel({ students, activeTab, t, lang }: { students: EnrichedChild[]; activeTab: string; t: PortalT; lang: string }) {
+function RightPanel({ students, t }: { students: EnrichedChild[]; t: PortalT }) {
   const [focusId, setFocusId] = useState(students[0]?.id ?? '')
   const child = students.find(s => s.id === focusId) ?? students[0]
   if (!child) return null
@@ -903,7 +903,7 @@ export function ParentDashboard({ students, parentEmail }: {
         </div>
 
         {/* ── Right panel ─────────────────────────────────────────────────────── */}
-        <RightPanel students={students} activeTab={activeTab} t={t} lang={lang} />
+        <RightPanel students={students} t={t} />
       </div>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────────────── */}
