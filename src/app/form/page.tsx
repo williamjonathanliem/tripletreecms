@@ -107,14 +107,16 @@ const SKILLS = [
   { value: 'calligraphy',       en: 'Calligraphy',       zh: '书法' },
 ]
 
-const LANG_LEVELS = (t: typeof T['en']) => [
+type Translations = typeof T['en'] | typeof T['zh']
+
+const LANG_LEVELS = (t: Translations) => [
   { value: 'understand_cant_speak', label: t.lv_understand },
   { value: 'can_speak_simple',      label: t.lv_speak_simple },
   { value: 'can_speak_write_basic', label: t.lv_speak_basic },
   { value: 'zero_basic',            label: t.lv_zero },
 ]
 
-const PROFICIENCY = (t: typeof T['en']) => [
+const PROFICIENCY = (t: Translations) => [
   { value: 'strong',     label: t.lv_strong },
   { value: 'moderate',   label: t.lv_moderate },
   { value: 'weak',       label: t.lv_weak },
