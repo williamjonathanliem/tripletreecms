@@ -10,10 +10,7 @@ export default async function StudentsPage() {
   const ctx = await getTeacherContext()
   if (!ctx) redirect('/login')
 
-  const query = supabase.from('students').select('*').order('name')
-  const { data: students } = ctx.role === 'hr'
-    ? await query
-    : await query.eq('teacher_id', ctx.id)
+  const { data: students } = await supabase.from('students').select('*').order('name')
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
