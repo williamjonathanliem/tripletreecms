@@ -7,7 +7,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, UserPlus, CalendarDays, MessageSquare,
   BookOpen, User, LogOut, Calendar, Bell, BarChart2, Clock, PieChart,
-  ClipboardList, FileText, CreditCard, ShieldCheck, Loader2, UserCog,
+  ClipboardList, FileText, CreditCard, ShieldCheck, Loader2, UserCog, MapPin,
 } from 'lucide-react'
 import { InstallButton } from '@/components/layout/InstallButton'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,7 @@ const NAV_LABELS = {
     submissions:  'Submissions',
     payments:     'Payments',
     parents:      'Parent Accounts',
+    branches:     'Branches',
     // Bottom
     profile:      'Profile',
     signout:      'Sign Out',
@@ -72,6 +73,7 @@ const NAV_LABELS = {
     submissions:  '申请表',
     payments:     '收费管理',
     parents:      '家长账号',
+    branches:     '分校',
     // Bottom
     profile:      '个人资料',
     signout:      '登出',
@@ -118,6 +120,7 @@ export function Sidebar({ role, subjects }: SidebarProps) {
     { href: '/hr?tab=submissions',   label: t.submissions,   icon: ClipboardList,   tab: 'submissions' },
     { href: '/hr?tab=confirmation',  label: t.confirmation,  icon: FileText,        tab: 'confirmation' },
     { href: '/hr?tab=parents',       label: t.parents,       icon: UserCog,         tab: 'parents'       },
+    { href: '/hr?tab=branches',      label: t.branches,      icon: MapPin,          tab: 'branches'      },
   ]
 
   // Teacher tools available to HR (standalone pages)

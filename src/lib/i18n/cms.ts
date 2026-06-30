@@ -465,6 +465,8 @@ export const CMS_T = {
       tab_payments_sub: 'Manage student fee status and download receipts',
       tab_parents: 'Parent Accounts',
       tab_parents_sub: 'Manage parent portal access — deactivate, resend invites, or remove accounts',
+      tab_branches: 'Branches',
+      tab_branches_sub: 'Manage centre locations shown in the student form',
     },
     student_detail: {
       back: 'Students',
@@ -1128,6 +1130,8 @@ export const CMS_T = {
       tab_payments_sub: '管理学生缴费状态及下载收据',
       tab_parents: '家长账号',
       tab_parents_sub: '管理家长门户访问权限 — 停用、重发邀请或删除账号',
+      tab_branches: '分校',
+      tab_branches_sub: '管理学生表单中显示的中心地点',
     },
     student_detail: {
       back: '学生列表',

@@ -11,10 +11,18 @@ import { BootcampConfirmationTab } from './BootcampConfirmationTab'
 import { ScheduleCalendar } from '@/components/schedule/ScheduleCalendar'
 import { HRPaymentsTab } from './HRPaymentsTab'
 import { ParentsTab } from './ParentsTab'
+import { BranchesTab } from './BranchesTab'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
 import type { Teacher, ScheduleEvent, Subject, Announcement } from '@/types'
 import type { HRStudent } from './HRPaymentsTab'
+
+interface Branch {
+  id: string
+  name: string
+  active: boolean
+  created_at: string
+}
 
 interface Props {
   defaultTab: string
@@ -28,12 +36,13 @@ interface Props {
   upcomingThisWeek: number
   currentUserName?: string
   hrStudents: HRStudent[]
+  branches: Branch[]
 }
 
 export function HRView({
   defaultTab, teachers, classes, events, announcements,
   teacherSubjectCounts, classSubjectCounts,
-  totalStudents, upcomingThisWeek, currentUserName, hrStudents,
+  totalStudents, upcomingThisWeek, currentUserName, hrStudents, branches,
 }: Props) {
   const tab = defaultTab || 'overview'
   const { lang } = useCmsLang()
@@ -98,6 +107,8 @@ export function HRView({
       )}
 
       {tab === 'parents' && <ParentsTab />}
+
+      {tab === 'branches' && <BranchesTab branches={branches} />}
     </div>
   )
 }

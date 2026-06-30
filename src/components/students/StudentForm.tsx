@@ -17,19 +17,10 @@ interface Props {
   onClose?: () => void
 }
 
-const SUBJECT_EMOJI: Record<string, string> = {
-  coding:        '💻',
-  chinese:       '📖',
-  chinese_extra: '🀄',
-  english:       '🔤',
-  maths:         '📐',
-  science:       '🔬',
-  calligraphy:   '✒️',
-  arts:          '🎨',
-}
-
-function getInitials(name: string) {
-  return name.trim().split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 mb-3">{children}</p>
+  )
 }
 
 export function StudentForm({ student, onClose }: Props) {
@@ -51,10 +42,10 @@ export function StudentForm({ student, onClose }: Props) {
   const [submitting,    setSubmitting]    = useState(false)
   const [errors,        setErrors]        = useState<Record<string, string>>({})
 
-  // HR-specific: detect role + load teachers for assignment
   const [isHR,            setIsHR]            = useState(false)
   const [teachers,        setTeachers]        = useState<{ id: string; name: string }[]>([])
   const [assignedTeacher, setAssignedTeacher] = useState(student?.teacher_id ?? '')
+  const [branches,        setBranches]        = useState<string[]>([])
   const [loadingMeta,     setLoadingMeta]     = useState(true)
 
   useEffect(() => {
@@ -78,6 +69,15 @@ export function StudentForm({ student, onClose }: Props) {
           .order('name')
         setTeachers(list ?? [])
       }
+
+      const { data: branchRows } = await supabase
+        .from('branches')
+        .select('name')
+        .eq('active', true)
+        .order('name')
+      const names = branchRows?.map(r => r.name) ?? []
+      setBranches(names.length ? names : ['Mont Kiara'])
+
       setLoadingMeta(false)
     }
     init()
@@ -134,12 +134,16 @@ export function StudentForm({ student, onClose }: Props) {
     onClose?.()
   }
 
-  const inp    = "w-full h-10 px-3 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all"
-  const inpErr = "ring-2 ring-red-200 border-red-200"
+  const inp = (hasErr?: boolean) =>
+    `w-full h-11 px-4 rounded-xl border text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all ${
+      hasErr
+        ? 'border-red-300 bg-red-50 focus:ring-red-100'
+        : 'border-gray-200 bg-white focus:ring-blue-100 focus:border-blue-300'
+    }`
 
   if (loadingMeta) {
     return (
-      <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+      <div className="flex items-center justify-center py-24 gap-3 text-gray-400">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">Loading…</span>
       </div>
@@ -147,60 +151,54 @@ export function StudentForm({ student, onClose }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="flex flex-col h-full">
+      <div className="flex-1 px-7 py-6 space-y-7">
 
-      {/* ── Header: avatar + name ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 p-5 pb-4 border-b border-gray-100">
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold shrink-0 transition-colors"
-          style={{ backgroundColor: accentColor }}
-        >
-          {getInitials(name)}
-        </div>
-        <div className="flex-1 min-w-0">
+        {/* ── Student name ──────────────────────────────────────────────── */}
+        <div>
+          <SectionLabel>Student Name</SectionLabel>
           <input
-            className="w-full text-lg font-bold text-gray-900 bg-transparent border-b-2 border-gray-200 focus:border-gray-900 focus:outline-none pb-1 placeholder:text-gray-300 transition-colors"
-            placeholder={t.students.name_placeholder}
+            className={inp(!!errors.name)}
+            placeholder="e.g. Ahmad Haziq"
             value={name}
             onChange={e => setName(e.target.value)}
           />
-          {errors.name
-            ? <p className="text-xs text-red-500 mt-1">{errors.name}</p>
-            : <p className="text-xs text-gray-400 mt-1">{t.students.full_name}</p>
-          }
+          {errors.name && <p className="text-xs text-red-500 mt-1.5">{errors.name}</p>}
         </div>
-      </div>
 
-      <div className="p-5 space-y-5">
-
-        {/* ── Subject grid ─────────────────────────────────────────────────── */}
+        {/* ── Subject ───────────────────────────────────────────────────── */}
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2.5">
-            {t.students.subject ?? 'Subject'}
-          </p>
+          <SectionLabel>Subject</SectionLabel>
           <div className="grid grid-cols-4 gap-2">
             {SUBJECTS.map(s => {
               const m      = SUBJECT_META[s]
               const active = subject === s
-              // Short label: strip long suffixes for compact display
-              const shortLabel = m.label
-                .replace('& Robotics', '')
-                .replace('(Extra)', 'Extra')
+              const label  = m.label
+                .replace(' & Robotics', '')
+                .replace(' (Extra)', '\nExtra')
                 .trim()
               return (
                 <button
-                  key={s} type="button"
+                  key={s}
+                  type="button"
                   onClick={() => handleSubjectChange(s)}
-                  className="flex flex-col items-center gap-1 py-3 rounded-2xl border-2 text-center transition-all hover:scale-[1.02]"
+                  className="relative flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-xl border-2 transition-all text-center hover:scale-[1.02]"
                   style={active
                     ? { background: m.bg, borderColor: m.color }
-                    : { background: '#F9FAFB', borderColor: '#F3F4F6' }
+                    : { background: '#FAFAFA', borderColor: '#EBEBEB' }
                   }
                 >
-                  <span className="text-base leading-none">{SUBJECT_EMOJI[s]}</span>
-                  <span className="text-[10px] font-bold leading-tight px-0.5 mt-0.5"
-                    style={{ color: active ? m.color : '#9CA3AF' }}>
-                    {shortLabel}
+                  {active && (
+                    <span
+                      className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                      style={{ background: m.color }}
+                    />
+                  )}
+                  <span
+                    className="text-[11px] font-bold leading-tight whitespace-pre-line"
+                    style={{ color: active ? m.color : '#B0B0B0' }}
+                  >
+                    {label}
                   </span>
                 </button>
               )
@@ -208,107 +206,136 @@ export function StudentForm({ student, onClose }: Props) {
           </div>
         </div>
 
-        {/* ── Tier (coding only) ───────────────────────────────────────────── */}
+        {/* ── Tier (coding only) ────────────────────────────────────────── */}
         {isCoding && (
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t.students.tier}</p>
+            <SectionLabel>Class Tier</SectionLabel>
             <Select value={tier} onValueChange={v => { if (v) setTier(v) }}>
-              <SelectTrigger className={`h-10 rounded-xl border-gray-100 bg-gray-50 ${errors.tier ? inpErr : ''}`}>
-                <SelectValue placeholder={t.students.tier_placeholder} />
+              <SelectTrigger className={`h-11 rounded-xl text-sm ${errors.tier ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
+                <SelectValue placeholder="Select a tier…" />
               </SelectTrigger>
               <SelectContent>
                 {TIERS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
               </SelectContent>
             </Select>
-            {errors.tier && <p className="text-xs text-red-500 mt-1">{errors.tier}</p>}
+            {errors.tier && <p className="text-xs text-red-500 mt-1.5">{errors.tier}</p>}
           </div>
         )}
 
-        {/* ── Age / Date / Branch ──────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t.students.age}</p>
-            <input type="number" placeholder="10"
-              className={`${inp} ${errors.age ? inpErr : ''}`}
-              value={age} onChange={e => setAge(e.target.value)} />
-            {errors.age && <p className="text-xs text-red-500 mt-1">{errors.age}</p>}
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t.students.enrolled_date}</p>
-            <input type="date"
-              className={`${inp} ${errors.enrolled_date ? inpErr : ''}`}
-              value={enrolledDate} onChange={e => setEnrolledDate(e.target.value)} />
-            {errors.enrolled_date && <p className="text-xs text-red-500 mt-1">{errors.enrolled_date}</p>}
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t.students.branch}</p>
-            <input placeholder="Mont Kiara"
-              className={`${inp} ${errors.branch ? inpErr : ''}`}
-              value={branch} onChange={e => setBranch(e.target.value)} />
-            {errors.branch && <p className="text-xs text-red-500 mt-1">{errors.branch}</p>}
+        {/* ── Enrolment details ─────────────────────────────────────────── */}
+        <div>
+          <SectionLabel>Enrolment Details</SectionLabel>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1.5 block">Age</label>
+              <input
+                type="number" placeholder="10" min={4} max={18}
+                className={inp(!!errors.age)}
+                value={age} onChange={e => setAge(e.target.value)}
+              />
+              {errors.age && <p className="text-xs text-red-500 mt-1">{errors.age}</p>}
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1.5 block">Enrolled Date</label>
+              <input
+                type="date"
+                className={inp(!!errors.enrolled_date)}
+                value={enrolledDate} onChange={e => setEnrolledDate(e.target.value)}
+              />
+              {errors.enrolled_date && <p className="text-xs text-red-500 mt-1">{errors.enrolled_date}</p>}
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1.5 block">Branch</label>
+              <div className="relative">
+                <select
+                  value={branch}
+                  onChange={e => setBranch(e.target.value)}
+                  className={`${inp(!!errors.branch)} pr-8 appearance-none cursor-pointer`}
+                >
+                  <option value="">Select…</option>
+                  {branches.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+              {errors.branch && <p className="text-xs text-red-500 mt-1">{errors.branch}</p>}
+            </div>
           </div>
         </div>
 
-        {/* ── HR only: assign teacher ──────────────────────────────────────── */}
+        {/* ── Assign teacher (HR only) ──────────────────────────────────── */}
         {isHR && (
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Assign Teacher</p>
+            <SectionLabel>Assign Teacher</SectionLabel>
             <div className="relative">
               <select
                 value={assignedTeacher}
                 onChange={e => setAssignedTeacher(e.target.value)}
-                className={`${inp} pr-8 appearance-none cursor-pointer ${errors.teacher ? inpErr : ''}`}
+                className={`${inp(!!errors.teacher)} pr-8 appearance-none cursor-pointer`}
               >
-                <option value="">— Select a teacher —</option>
+                <option value="">Select a teacher…</option>
                 {teachers.map(tc => (
                   <option key={tc.id} value={tc.id}>{tc.name}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
-            {errors.teacher && <p className="text-xs text-red-500 mt-1">{errors.teacher}</p>}
+            {errors.teacher && <p className="text-xs text-red-500 mt-1.5">{errors.teacher}</p>}
           </div>
         )}
 
-        {/* ── Parent info ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t.students.parent_contact}</p>
-            <input placeholder="60 12-345 6789"
-              className={inp}
-              value={parentContact} onChange={e => setParentContact(e.target.value)} />
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Parent Email</p>
-            <input type="email" placeholder="parent@email.com"
-              className={inp}
-              value={parentEmail} onChange={e => setParentEmail(e.target.value)} />
+        {/* ── Parent info ───────────────────────────────────────────────── */}
+        <div>
+          <SectionLabel>Parent / Guardian</SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1.5 block">Contact Number</label>
+              <input
+                placeholder="60 12-345 6789"
+                className={inp()}
+                value={parentContact} onChange={e => setParentContact(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1.5 block">Email Address</label>
+              <input
+                type="email" placeholder="parent@email.com"
+                className={inp()}
+                value={parentEmail} onChange={e => setParentEmail(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
-        {/* ── Notes ───────────────────────────────────────────────────────── */}
+        {/* ── Notes ─────────────────────────────────────────────────────── */}
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">{t.students.notes}</p>
+          <SectionLabel>Notes</SectionLabel>
           <textarea
-            className="w-full px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none resize-none transition-all"
-            placeholder={t.students.notes_placeholder}
-            rows={2}
+            rows={3}
+            placeholder="Any extra info — schedule, allergies, learning notes…"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 resize-none transition-all"
             value={notes} onChange={e => setNotes(e.target.value)}
           />
         </div>
+
       </div>
 
-      {/* ── Actions ─────────────────────────────────────────────────────────── */}
-      <div className="flex gap-2 px-5 pb-5">
+      {/* ── Sticky footer ──────────────────────────────────────────────── */}
+      <div className="shrink-0 px-7 py-5 border-t border-gray-100 bg-white flex items-center gap-3">
         {onClose && (
-          <button type="button" onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
-            {t.common.cancel}
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            Cancel
           </button>
         )}
-        <button type="submit" disabled={submitting}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-opacity active:scale-[0.99]"
-          style={{ background: accentColor }}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-all active:scale-[0.99]"
+          style={{ background: accentColor }}
+        >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           {isEditing ? t.students.save_changes : t.students.add_student}
         </button>

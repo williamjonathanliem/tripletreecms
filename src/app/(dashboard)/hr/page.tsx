@@ -18,12 +18,14 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
     { data: classes },
     { data: events },
     { data: announcements },
+    { data: branches },
   ] = await Promise.all([
     supabase.from('teachers').select('*').order('created_at'),
     supabase.from('students').select('id, name, age, tier, branch, subject, fee_status, fee_note, fee_amount, fee_due_date, enrolled_date, teacher_id, parent_contact, parent_email').order('name'),
     supabase.from('classes').select('id, tier, branch, subject').order('created_at'),
     supabase.from('schedule_events').select('*').order('event_date').order('start_time'),
     supabase.from('announcements').select('*').order('created_at', { ascending: false }),
+    supabase.from('branches').select('*').order('name'),
   ])
 
   const teacherMap = Object.fromEntries((teachers ?? []).map(t => [t.id, t.name]))
@@ -76,6 +78,7 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
         upcomingThisWeek={upcomingThisWeek}
         currentUserName={ctx.name}
         hrStudents={hrStudents}
+        branches={(branches ?? []) as { id: string; name: string; active: boolean; created_at: string }[]}
       />
     </div>
   )
