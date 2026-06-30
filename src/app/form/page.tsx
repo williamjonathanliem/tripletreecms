@@ -1,31 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
-import { Loader2, CheckCircle2, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 
 type Lang = 'en' | 'zh'
-
-type Translation = {
-  subtitle: string
-  section_student: string; section_parent: string; section_subjects: string
-  section_skills: string; section_levels: string; section_additional: string
-  date: string; age: string; name: string; dob: string; school: string
-  parent_name: string; contact: string; email: string
-  dominant_language: string; specify: string
-  focus_area: string; consultant: string
-  mandarin_level: string; english_level: string; maths_level: string; coding_level: string
-  lang_en: string; lang_mandarin: string; lang_others: string
-  ph_name: string; ph_age: string; ph_school: string; ph_parent: string
-  ph_contact: string; ph_email: string; ph_specify: string; ph_focus: string; ph_consultant: string
-  submit: string; submitting: string; privacy: string
-  err_name: string; err_contact: string; err_failed: string
-  success_title: string; success_msg: string
-  level_understand: string; level_speak_simple: string; level_speak_basic: string; level_zero: string
-  level_strong: string; level_moderate: string; level_weak: string
-}
 
 type FormData = {
   date: string; student_name: string; student_age: string; student_dob: string
@@ -47,88 +28,74 @@ const EMPTY: FormData = {
 const T = {
   en: {
     subtitle: 'Student Registration',
-    section_student: 'Student Information',
-    section_parent: 'Parent / Guardian',
-    section_subjects: 'Interested Subjects',
-    section_skills: 'Skills & Enrichment',
-    section_levels: 'Current Level',
-    section_additional: 'Additional Information',
-    date: 'Date', age: 'Age', name: 'Student Name', dob: 'Date of Birth', school: 'School / Grade',
-    parent_name: 'Parent Name', contact: 'Contact Number', email: 'Email',
-    dominant_language: 'Dominant Language', specify: 'Please specify',
-    focus_area: 'Goals & Focus Area', consultant: 'Consultant Name',
-    mandarin_level: 'Mandarin Level', english_level: 'English Level',
-    maths_level: 'Maths', coding_level: 'Coding',
+    s_student: 'Student Information', s_parent: 'Parent / Guardian',
+    s_subjects: 'Interested Subjects', s_skills: 'Skills & Enrichment',
+    s_levels: 'Current Level', s_additional: 'Additional Information',
+    name: 'Student Name', age: 'Age', date: 'Date', dob: 'Date of Birth', school: 'School / Grade',
+    parent_name: 'Parent Name', contact: 'Contact Number', email: 'Email Address',
+    dominant_language: 'Dominant Language',
     lang_en: 'English', lang_mandarin: 'Mandarin', lang_others: 'Others',
-    ph_name: 'Full name', ph_age: 'e.g. 10', ph_school: 'e.g. SK Taman Jaya, Year 4',
+    specify: 'Please specify',
+    mandarin_level: 'Mandarin', english_level: 'English',
+    maths_level: 'Maths', coding_level: 'Coding & Robotics',
+    focus_area: 'Goals & Focus Area', consultant: 'Consultant Name',
+    ph_name: 'Full name', ph_age: '10', ph_school: 'e.g. SK Taman Jaya, Year 4',
     ph_parent: 'Parent / guardian name', ph_contact: '+60 12-345 6789',
-    ph_email: 'example@email.com', ph_specify: 'Please specify',
-    ph_focus: 'Specific goals, concerns, or areas to focus on…',
+    ph_email: 'example@email.com', ph_specify: 'e.g. Thai, Japanese…',
+    ph_focus: 'Goals, concerns, or specific areas to work on…',
     ph_consultant: 'Name of consultant who assisted you',
-    submit: 'Submit Registration', submitting: 'Submitting…',
-    privacy: 'By submitting this form, you consent to being contacted by Triple Tree Enrichment Centre.',
-    err_name: 'Student name is required.',
-    err_contact: 'Please provide a contact number or email.',
+    submit: 'Submit Registration',
+    privacy: 'By submitting, you consent to being contacted by Triple Tree Enrichment Centre.',
+    err_name: 'Student name is required.', err_contact: 'Please provide a contact number or email.',
     err_failed: 'Submission failed. Please try again.',
     success_title: 'Registration Received',
-    success_msg: 'Thank you for registering with Triple Tree Enrichment Centre. Our consultant will be in touch shortly to confirm your session.',
-    level_understand: "Understand, cannot speak",
-    level_speak_simple: "Can speak, cannot read or write",
-    level_speak_basic: 'Can speak, read and write (basic)',
-    level_zero: 'No prior experience',
-    level_strong: 'Strong', level_moderate: 'Moderate', level_weak: 'Weak',
+    success_msg: 'Thank you for registering. Our team will be in touch shortly to confirm your session.',
+    lv_understand: 'Understand, cannot speak',
+    lv_speak_simple: 'Can speak, cannot read or write',
+    lv_speak_basic: 'Can speak, read and write (basic)',
+    lv_zero: 'No prior experience',
+    lv_strong: 'Strong', lv_moderate: 'Moderate', lv_weak: 'Weak',
   },
   zh: {
     subtitle: '学生注册',
-    section_student: '学生资料', section_parent: '家长联系资料',
-    section_subjects: '关注课目', section_skills: '关注技能',
-    section_levels: '学生程度', section_additional: '其他资料',
-    date: '日期', age: '岁数', name: '学生名字', dob: '生日日期', school: '学校/班级',
+    s_student: '学生资料', s_parent: '家长联系资料',
+    s_subjects: '关注课目', s_skills: '关注技能',
+    s_levels: '学生程度', s_additional: '其他资料',
+    name: '学生名字', age: '岁数', date: '日期', dob: '生日日期', school: '学校/班级',
     parent_name: '家长名字', contact: '联系号码', email: '电邮',
-    dominant_language: '主要语言', specify: '请注明',
-    focus_area: '学生关注点', consultant: '顾问名字',
-    mandarin_level: '中文程度', english_level: '英文程度',
-    maths_level: '数学程度', coding_level: '编程程度',
+    dominant_language: '主要语言',
     lang_en: '英文', lang_mandarin: '中文', lang_others: '其它',
-    ph_name: '全名', ph_age: '例如 10', ph_school: '例如 SK Taman Jaya，四年级',
+    specify: '请注明',
+    mandarin_level: '中文程度', english_level: '英文程度',
+    maths_level: '数学', coding_level: '编程',
+    focus_area: '学生关注点', consultant: '顾问名字',
+    ph_name: '全名', ph_age: '10', ph_school: '例如 SK Taman Jaya，四年级',
     ph_parent: '家长/监护人姓名', ph_contact: '+60 12-345 6789',
-    ph_email: 'example@email.com', ph_specify: '请注明',
+    ph_email: 'example@email.com', ph_specify: '例如 泰文、日文…',
     ph_focus: '任何具体目标、关注点或需重点关注的领域…',
     ph_consultant: '协助您的顾问姓名',
-    submit: '提交注册', submitting: '提交中…',
-    privacy: '提交此表格即表示您同意接受Triple Tree丰富中心的联系。',
-    err_name: '请填写学生姓名。',
-    err_contact: '请提供联系电话或电子邮件。',
+    submit: '提交注册',
+    privacy: '提交此表格即表示您同意接受 Triple Tree 丰富中心的联系。',
+    err_name: '请填写学生姓名。', err_contact: '请提供联系电话或电子邮件。',
     err_failed: '提交失败，请重试。',
     success_title: '注册成功',
-    success_msg: '感谢您向Triple Tree丰富中心注册。我们的顾问将尽快联系您确认课程时间。',
-    level_understand: '明白但不会讲', level_speak_simple: '会讲，不会写和读',
-    level_speak_basic: '会说读写（基础）', level_zero: '完全不会',
-    level_strong: '强', level_moderate: '中等', level_weak: '弱',
+    success_msg: '感谢您的注册。我们的顾问将尽快联系您确认课程时间。',
+    lv_understand: '明白但不会讲',
+    lv_speak_simple: '会讲，不会写和读',
+    lv_speak_basic: '会说读写（基础）',
+    lv_zero: '完全不会',
+    lv_strong: '强', lv_moderate: '中等', lv_weak: '弱',
   },
-} satisfies Record<Lang, Translation>
-
-const LANGUAGE_LEVELS = (t: Translation) => [
-  { value: 'understand_cant_speak', label: t.level_understand },
-  { value: 'can_speak_simple',      label: t.level_speak_simple },
-  { value: 'can_speak_write_basic', label: t.level_speak_basic },
-  { value: 'zero_basic',            label: t.level_zero },
-]
-const PROFICIENCY = (t: Translation) => [
-  { value: 'strong',     label: t.level_strong },
-  { value: 'moderate',   label: t.level_moderate },
-  { value: 'weak',       label: t.level_weak },
-  { value: 'zero_basic', label: t.level_zero },
-]
+} as const
 
 const SUBJECTS = [
-  { value: 'english',        en: 'English',           zh: '英文',     color: '#7D6608' },
-  { value: 'maths_e',        en: 'Maths (English)',   zh: '英数',     color: '#1E8449' },
-  { value: 'maths_m',        en: 'Maths (Mandarin)',  zh: '华数',     color: '#1E8449' },
-  { value: 'coding',         en: 'Coding & Robotics', zh: '编程',     color: '#1A5276' },
-  { value: 'mandarin',       en: 'Mandarin',          zh: '华文',     color: '#C0392B' },
-  { value: 'mandarin_extra', en: 'Mandarin (Extra)',  zh: '华文加强',  color: '#922B21' },
-  { value: 'science',        en: 'Science',           zh: '科学',     color: '#117A65' },
+  { value: 'english',        en: 'English',           zh: '英文' },
+  { value: 'maths_e',        en: 'Maths (English)',   zh: '英数' },
+  { value: 'maths_m',        en: 'Maths (Mandarin)',  zh: '华数' },
+  { value: 'coding',         en: 'Coding & Robotics', zh: '编程机器人' },
+  { value: 'mandarin',       en: 'Mandarin',          zh: '华文' },
+  { value: 'mandarin_extra', en: 'Mandarin (Extra)',  zh: '华文加强' },
+  { value: 'science',        en: 'Science',           zh: '科学' },
 ]
 
 const SKILLS = [
@@ -137,62 +104,128 @@ const SKILLS = [
   { value: 'mandarin_reading',  en: 'Mandarin Reading',  zh: '华文阅读' },
   { value: 'mandarin_speaking', en: 'Mandarin Speaking', zh: '华文演讲' },
   { value: 'creative_art',      en: 'Creative Art',      zh: '创意绘画' },
-  { value: 'calligraphy',       en: 'Calligraphy',       zh: '书法'     },
+  { value: 'calligraphy',       en: 'Calligraphy',       zh: '书法' },
 ]
 
-const DARK   = '#0D1B2A'
-const GREEN  = '#1E8449'
-const BLUE   = '#1A5276'
+const LANG_LEVELS = (t: typeof T['en']) => [
+  { value: 'understand_cant_speak', label: t.lv_understand },
+  { value: 'can_speak_simple',      label: t.lv_speak_simple },
+  { value: 'can_speak_write_basic', label: t.lv_speak_basic },
+  { value: 'zero_basic',            label: t.lv_zero },
+]
+
+const PROFICIENCY = (t: typeof T['en']) => [
+  { value: 'strong',     label: t.lv_strong },
+  { value: 'moderate',   label: t.lv_moderate },
+  { value: 'weak',       label: t.lv_weak },
+  { value: 'zero_basic', label: t.lv_zero },
+]
+
+// ── DateInput ─────────────────────────────────────────────────────────────────
+
+const MONTHS_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+
+function DateInput({ value, onChange, lang, yearRange }: {
+  value: string
+  onChange: (v: string) => void
+  lang: Lang
+  yearRange?: [number, number]
+}) {
+  const parts = value ? value.split('-') : ['', '', '']
+  const [y, m, d] = parts
+
+  const months = lang === 'zh' ? MONTHS_ZH : MONTHS_EN
+  const now     = new Date().getFullYear()
+  const [minY, maxY] = yearRange ?? [now - 20, now + 1]
+  const years = Array.from({ length: maxY - minY + 1 }, (_, i) => maxY - i)
+  const daysInMonth = m && y ? new Date(Number(y), Number(m), 0).getDate() : 31
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+
+  function emit(ny: string, nm: string, nd: string) {
+    if (ny && nm && nd) onChange(`${ny}-${nm.padStart(2,'0')}-${nd.padStart(2,'0')}`)
+    else onChange('')
+  }
+
+  const sel = `flex-1 h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all appearance-none cursor-pointer`
+
+  return (
+    <div className="flex gap-2">
+      {/* Day */}
+      <select value={d} onChange={e => emit(y, m, e.target.value)} className={sel} style={{ minWidth: 0 }}>
+        <option value="">{lang === 'zh' ? '日' : 'Day'}</option>
+        {days.map(n => <option key={n} value={n}>{n}</option>)}
+      </select>
+      {/* Month */}
+      <select value={m} onChange={e => emit(y, e.target.value, d)} className={sel} style={{ minWidth: 0, flex: 1.4 }}>
+        <option value="">{lang === 'zh' ? '月' : 'Month'}</option>
+        {months.map((label, i) => <option key={i+1} value={i+1}>{label}</option>)}
+      </select>
+      {/* Year */}
+      <select value={y} onChange={e => emit(e.target.value, m, d)} className={sel} style={{ minWidth: 0, flex: 1.2 }}>
+        <option value="">{lang === 'zh' ? '年' : 'Year'}</option>
+        {years.map(n => <option key={n} value={n}>{n}</option>)}
+      </select>
+    </div>
+  )
+}
 
 // ── Primitives ────────────────────────────────────────────────────────────────
 
-function SectionHeading({ number, label }: { number: string; label: string }) {
+function SectionDivider({ n, label }: { n: string; label: string }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
-      <span className="text-[11px] font-black tracking-widest tabular-nums" style={{ color: GREEN }}>{number}</span>
+    <div className="flex items-center gap-4 mb-8">
+      <span className="text-xs font-black tracking-widest text-gray-300 tabular-nums select-none">{n}</span>
       <div className="flex-1 h-px bg-gray-100" />
-      <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{label}</span>
     </div>
   )
 }
 
-function FloatInput({ label, required, error, children }: {
-  label: string; required?: boolean; error?: string; children: React.ReactNode
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label className="block text-xs font-semibold text-gray-500 mb-2 tracking-wide">
+      {children}
+      {required && <span className="text-rose-400 ml-0.5">*</span>}
+    </label>
+  )
+}
+
+const field = "w-full h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all"
+
+function RadioRow({ value, label, checked, onChange, color }: {
+  value: string; label: string; checked: boolean
+  onChange: () => void; color?: string
 }) {
   return (
-    <div>
-      <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-    </div>
+    <label
+      className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg border cursor-pointer transition-all select-none"
+      style={checked
+        ? { borderColor: color ?? '#111827', background: color ? `${color}08` : '#f9fafb' }
+        : { borderColor: '#e5e7eb', background: 'white' }
+      }
+    >
+      <input type="radio" value={value} checked={checked} onChange={onChange} className="sr-only" />
+      <div
+        className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
+        style={{ borderColor: checked ? (color ?? '#111827') : '#d1d5db' }}
+      >
+        {checked && (
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: color ?? '#111827' }} />
+        )}
+      </div>
+      <span className="text-sm" style={{ color: checked ? (color ?? '#111827') : '#374151' }}>{label}</span>
+    </label>
   )
 }
-
-const inp = [
-  'w-full h-11 px-4 rounded-xl text-sm text-gray-900',
-  'bg-white border border-gray-200',
-  'placeholder:text-gray-300',
-  'focus:outline-none focus:border-gray-400 focus:ring-0',
-  'transition-colors',
-].join(' ')
-
-const textArea = [
-  'w-full px-4 py-3 rounded-xl text-sm text-gray-900',
-  'bg-white border border-gray-200',
-  'placeholder:text-gray-300',
-  'focus:outline-none focus:border-gray-400 focus:ring-0',
-  'resize-none transition-colors',
-].join(' ')
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function FormPage() {
-  const [lang,       setLang]       = useState<Lang>('en')
-  const [data,       setData]       = useState<FormData>(EMPTY)
+  const [lang, setLang]             = useState<Lang>('en')
+  const [data, setData]             = useState<FormData>(EMPTY)
   const [submitting, setSubmitting] = useState(false)
-  const [submitted,  setSubmitted]  = useState(false)
+  const [submitted, setSubmitted]   = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -200,26 +233,23 @@ export default function FormPage() {
     if (saved === 'en' || saved === 'zh') setLang(saved)
   }, [])
 
-  function switchLang(l: Lang) { setLang(l); localStorage.setItem('form_lang', l) }
   const t = T[lang]
-
-  function set(field: keyof FormData, value: string) {
-    setData(prev => ({ ...prev, [field]: value }))
-  }
-  function toggleArr(field: 'interested_subjects' | 'interested_skills', value: string) {
-    setData(prev => ({
-      ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter(v => v !== value)
-        : [...prev[field], value],
+  function switchLang(l: Lang) { setLang(l); localStorage.setItem('form_lang', l) }
+  function set(k: keyof FormData, v: string) { setData(p => ({ ...p, [k]: v })) }
+  function toggle(k: 'interested_subjects' | 'interested_skills', v: string) {
+    setData(p => ({
+      ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v],
     }))
   }
+
+  const isValid = useMemo(() =>
+    data.student_name.trim().length > 0 && (data.contact.trim().length > 0 || data.email.trim().length > 0)
+  , [data.student_name, data.contact, data.email])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!data.student_name.trim()) { toast.error(t.err_name); return }
     if (!data.contact.trim() && !data.email.trim()) { toast.error(t.err_contact); return }
-
     setSubmitting(true)
     const { error } = await supabase.from('form_submissions').insert({
       date:                    data.date || new Date().toISOString().split('T')[0],
@@ -249,15 +279,15 @@ export default function FormPage() {
   // ── Success ────────────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8" style={{ background: `${GREEN}12` }}>
-          <CheckCircle2 className="w-7 h-7" style={{ color: GREEN }} />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center mb-6">
+          <CheckCircle2 className="w-6 h-6 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">{t.success_title}</h1>
-        <p className="text-sm text-gray-500 leading-relaxed max-w-xs">{t.success_msg}</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">{t.success_title}</h1>
+        <p className="text-sm text-gray-500 max-w-xs leading-relaxed">{t.success_msg}</p>
         <div className="mt-10 flex items-center gap-2 opacity-30">
           <Image src="/logo.png" alt="Triple Tree" width={18} height={18} className="object-contain" />
-          <p className="text-xs text-gray-600 font-medium">Triple Tree Enrichment Centre</p>
+          <span className="text-xs text-gray-600 font-medium">Triple Tree Enrichment Centre</span>
         </div>
       </div>
     )
@@ -267,97 +297,104 @@ export default function FormPage() {
   return (
     <div className="min-h-screen bg-white" suppressHydrationWarning>
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="Triple Tree" width={32} height={32} className="object-contain" />
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-5 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Image src="/logo.png" alt="Triple Tree" width={28} height={28} className="object-contain" />
           <div>
-            <p className="text-sm font-bold leading-tight" style={{ color: DARK }}>Triple Tree</p>
-            <p className="text-[11px] text-gray-400 tracking-wide">Enrichment Centre</p>
+            <p className="text-sm font-bold text-gray-900 leading-none">Triple Tree</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Enrichment Centre</p>
           </div>
         </div>
-        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+        <div className="flex items-center bg-gray-100 rounded-md p-0.5 gap-0.5">
           {(['en', 'zh'] as const).map(l => (
             <button key={l} onClick={() => switchLang(l)}
-              className="px-3 py-1.5 rounded-md text-xs font-bold transition-all"
+              className="px-2.5 py-1 rounded text-xs font-semibold transition-all"
               style={lang === l
-                ? { background: 'white', color: DARK, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                ? { background: 'white', color: '#111827', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }
                 : { color: '#9ca3af' }
               }>
               {l === 'en' ? 'EN' : '中文'}
             </button>
           ))}
         </div>
-      </div>
+      </header>
 
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <div className="px-6 pt-10 pb-8 border-b border-gray-100 max-w-2xl mx-auto">
-        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: GREEN }}>
+      {/* Hero */}
+      <div className="max-w-2xl mx-auto px-5 pt-10 pb-8">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
           Triple Tree Enrichment Centre
         </p>
-        <h1 className="text-3xl font-bold leading-tight" style={{ color: DARK }}>{t.subtitle}</h1>
-        <p className="text-sm text-gray-400 mt-2">Complete the form below and our team will be in touch to arrange your trial session.</p>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t.subtitle}</h1>
+        <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+          {lang === 'en'
+            ? 'Complete the form below and our team will be in touch to arrange your trial session.'
+            : '请填写以下表格，我们的顾问将尽快联系您安排试课。'}
+        </p>
       </div>
 
-      {/* ── Form body ──────────────────────────────────────────────────────── */}
-      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-6 py-10 space-y-12">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-5 pb-20 space-y-14">
 
-        {/* 01 Student */}
-        <div>
-          <SectionHeading number="01" label={t.section_student} />
-          <div className="space-y-4">
-            <FloatInput label={t.name} required>
-              <input type="text" placeholder={t.ph_name}
-                value={data.student_name} onChange={e => set('student_name', e.target.value)}
-                className={inp} />
-            </FloatInput>
-            <div className="grid grid-cols-2 gap-4">
-              <FloatInput label={t.age}>
-                <input type="number" min={1} max={99} placeholder={t.ph_age}
-                  value={data.student_age} onChange={e => set('student_age', e.target.value)}
-                  className={inp} />
-              </FloatInput>
-              <FloatInput label={t.date}>
-                <input type="date" value={data.date} onChange={e => set('date', e.target.value)}
-                  className={inp} />
-              </FloatInput>
+        {/* 01 — Student */}
+        <section>
+          <SectionDivider n="01" label={t.s_student} />
+          <div className="space-y-5">
+            <div>
+              <Label required>{t.name}</Label>
+              <input className={field} placeholder={t.ph_name}
+                value={data.student_name} onChange={e => set('student_name', e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <FloatInput label={t.dob}>
-                <input type="date" value={data.student_dob} onChange={e => set('student_dob', e.target.value)}
-                  className={inp} />
-              </FloatInput>
-              <FloatInput label={t.school}>
-                <input type="text" placeholder={t.ph_school}
-                  value={data.school_grade} onChange={e => set('school_grade', e.target.value)}
-                  className={inp} />
-              </FloatInput>
+              <div>
+                <Label>{t.age}</Label>
+                <input type="number" min={1} max={99} className={field} placeholder={t.ph_age}
+                  value={data.student_age} onChange={e => set('student_age', e.target.value)} />
+              </div>
+              <div>
+                <Label>{t.date}</Label>
+                <DateInput lang={lang} value={data.date} onChange={v => set('date', v)}
+                  yearRange={[new Date().getFullYear() - 1, new Date().getFullYear() + 1]} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t.dob}</Label>
+                <DateInput lang={lang} value={data.student_dob} onChange={v => set('student_dob', v)}
+                  yearRange={[new Date().getFullYear() - 25, new Date().getFullYear()]} />
+              </div>
+              <div>
+                <Label>{t.school}</Label>
+                <input className={field} placeholder={t.ph_school}
+                  value={data.school_grade} onChange={e => set('school_grade', e.target.value)} />
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* 02 Parent */}
-        <div>
-          <SectionHeading number="02" label={t.section_parent} />
-          <div className="space-y-4">
-            <FloatInput label={t.parent_name}>
-              <input type="text" placeholder={t.ph_parent}
-                value={data.parent_name} onChange={e => set('parent_name', e.target.value)}
-                className={inp} />
-            </FloatInput>
-            <div className="grid grid-cols-2 gap-4">
-              <FloatInput label={t.contact} required>
-                <input type="tel" placeholder={t.ph_contact}
-                  value={data.contact} onChange={e => set('contact', e.target.value)}
-                  className={inp} />
-              </FloatInput>
-              <FloatInput label={t.email}>
-                <input type="email" placeholder={t.ph_email}
-                  value={data.email} onChange={e => set('email', e.target.value)}
-                  className={inp} />
-              </FloatInput>
+        {/* 02 — Parent */}
+        <section>
+          <SectionDivider n="02" label={t.s_parent} />
+          <div className="space-y-5">
+            <div>
+              <Label>{t.parent_name}</Label>
+              <input className={field} placeholder={t.ph_parent}
+                value={data.parent_name} onChange={e => set('parent_name', e.target.value)} />
             </div>
-            <FloatInput label={t.dominant_language}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label required>{t.contact} <span className="normal-case font-normal text-gray-400 tracking-normal">({lang === 'en' ? 'or email' : '或电邮'})</span></Label>
+                <input type="tel" className={field} placeholder={t.ph_contact}
+                  value={data.contact} onChange={e => set('contact', e.target.value)} />
+              </div>
+              <div>
+                <Label required>{t.email} <span className="normal-case font-normal text-gray-400 tracking-normal">({lang === 'en' ? 'or contact' : '或电话'})</span></Label>
+                <input type="email" className={field} placeholder={t.ph_email}
+                  value={data.email} onChange={e => set('email', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>{t.dominant_language}</Label>
               <div className="flex gap-2">
                 {[
                   { value: 'english',  label: t.lang_en },
@@ -366,11 +403,11 @@ export default function FormPage() {
                 ].map(l => {
                   const sel = data.dominant_language === l.value
                   return (
-                    <button key={l.value} type="button" onClick={() => set('dominant_language', l.value)}
-                      className="flex-1 h-11 rounded-xl text-sm font-semibold border transition-all"
+                    <button key={l.value} type="button" onClick={() => set('dominant_language', sel ? '' : l.value)}
+                      className="flex-1 h-11 rounded-lg border text-sm font-medium transition-all"
                       style={sel
-                        ? { background: DARK, color: 'white', borderColor: DARK }
-                        : { background: 'white', color: '#9CA3AF', borderColor: '#E5E7EB' }
+                        ? { background: '#111827', color: 'white', borderColor: '#111827' }
+                        : { background: 'white', color: '#6b7280', borderColor: '#e5e7eb' }
                       }>
                       {l.label}
                     </button>
@@ -378,202 +415,145 @@ export default function FormPage() {
                 })}
               </div>
               {data.dominant_language === 'others' && (
-                <input type="text" placeholder={t.ph_specify}
-                  value={data.dominant_language_other}
-                  onChange={e => set('dominant_language_other', e.target.value)}
-                  className={`${inp} mt-2`} />
+                <input className={`${field} mt-2`} placeholder={t.ph_specify}
+                  value={data.dominant_language_other} onChange={e => set('dominant_language_other', e.target.value)} />
               )}
-            </FloatInput>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* 03 Subjects */}
-        <div>
-          <SectionHeading number="03" label={t.section_subjects} />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {/* 03 — Subjects */}
+        <section>
+          <SectionDivider n="03" label={t.s_subjects} />
+          <div className="flex flex-wrap gap-2">
             {SUBJECTS.map(s => {
-              const sel   = data.interested_subjects.includes(s.value)
-              const label = lang === 'en' ? s.en : s.zh
+              const sel = data.interested_subjects.includes(s.value)
               return (
-                <button key={s.value} type="button"
-                  onClick={() => toggleArr('interested_subjects', s.value)}
-                  className="relative h-12 px-4 rounded-xl border text-sm font-semibold text-left transition-all"
+                <button key={s.value} type="button" onClick={() => toggle('interested_subjects', s.value)}
+                  className="h-10 px-4 rounded-lg border text-sm font-medium transition-all"
                   style={sel
-                    ? { background: s.color, borderColor: s.color, color: 'white' }
-                    : { background: 'white', borderColor: '#E5E7EB', color: '#6B7280' }
+                    ? { background: '#111827', color: 'white', borderColor: '#111827' }
+                    : { background: 'white', color: '#6b7280', borderColor: '#e5e7eb' }
                   }>
-                  {label}
-                  {sel && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60 text-xs">&#10003;</span>
-                  )}
+                  {lang === 'en' ? s.en : s.zh}
                 </button>
               )
             })}
           </div>
-        </div>
+        </section>
 
-        {/* 04 Skills */}
-        <div>
-          <SectionHeading number="04" label={t.section_skills} />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {/* 04 — Skills */}
+        <section>
+          <SectionDivider n="04" label={t.s_skills} />
+          <div className="flex flex-wrap gap-2">
             {SKILLS.map(s => {
-              const sel   = data.interested_skills.includes(s.value)
-              const label = lang === 'en' ? s.en : s.zh
+              const sel = data.interested_skills.includes(s.value)
               return (
-                <button key={s.value} type="button"
-                  onClick={() => toggleArr('interested_skills', s.value)}
-                  className="h-12 px-4 rounded-xl border text-sm font-semibold text-left transition-all relative"
+                <button key={s.value} type="button" onClick={() => toggle('interested_skills', s.value)}
+                  className="h-10 px-4 rounded-lg border text-sm font-medium transition-all"
                   style={sel
-                    ? { background: DARK, borderColor: DARK, color: 'white' }
-                    : { background: 'white', borderColor: '#E5E7EB', color: '#6B7280' }
+                    ? { background: '#111827', color: 'white', borderColor: '#111827' }
+                    : { background: 'white', color: '#6b7280', borderColor: '#e5e7eb' }
                   }>
-                  {label}
-                  {sel && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60 text-xs">&#10003;</span>
-                  )}
+                  {lang === 'en' ? s.en : s.zh}
                 </button>
               )
             })}
           </div>
-        </div>
+        </section>
 
-        {/* 05 Levels */}
-        <div>
-          <SectionHeading number="05" label={t.section_levels} />
+        {/* 05 — Levels */}
+        <section>
+          <SectionDivider n="05" label={t.s_levels} />
           <div className="space-y-8">
-
-            {/* Mandarin */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t.mandarin_level}</p>
-              <div className="grid grid-cols-1 gap-2">
-                {LANGUAGE_LEVELS(t).map(l => {
-                  const sel = data.level_mandarin === l.value
-                  return (
-                    <label key={l.value}
-                      className="flex items-center gap-4 h-12 px-4 rounded-xl border cursor-pointer transition-all"
-                      style={sel
-                        ? { borderColor: '#C0392B', background: '#FEF2F2' }
-                        : { borderColor: '#E5E7EB', background: 'white' }
-                      }>
-                      <input type="radio" name="level_mandarin" value={l.value}
-                        checked={sel} onChange={() => set('level_mandarin', l.value)} className="sr-only" />
-                      <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
-                        style={{ borderColor: sel ? '#C0392B' : '#D1D5DB' }}>
-                        {sel && <div className="w-2 h-2 rounded-full bg-[#C0392B]" />}
-                      </div>
-                      <span className="text-sm font-medium" style={{ color: sel ? '#C0392B' : '#374151' }}>{l.label}</span>
-                    </label>
-                  )
-                })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              {/* Mandarin */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-3 tracking-wide">{t.mandarin_level}</p>
+                <div className="space-y-2">
+                  {LANG_LEVELS(t).map(o => (
+                    <RadioRow key={o.value} value={o.value} label={o.label}
+                      checked={data.level_mandarin === o.value}
+                      onChange={() => set('level_mandarin', o.value)}
+                      color="#C0392B" />
+                  ))}
+                </div>
+              </div>
+              {/* English */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-3 tracking-wide">{t.english_level}</p>
+                <div className="space-y-2">
+                  {LANG_LEVELS(t).map(o => (
+                    <RadioRow key={o.value} value={o.value} label={o.label}
+                      checked={data.level_english === o.value}
+                      onChange={() => set('level_english', o.value)}
+                      color="#1A5276" />
+                  ))}
+                </div>
               </div>
             </div>
-
-            {/* English */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t.english_level}</p>
-              <div className="grid grid-cols-1 gap-2">
-                {LANGUAGE_LEVELS(t).map(l => {
-                  const sel = data.level_english === l.value
-                  return (
-                    <label key={l.value}
-                      className="flex items-center gap-4 h-12 px-4 rounded-xl border cursor-pointer transition-all"
-                      style={sel
-                        ? { borderColor: BLUE, background: '#EFF6FF' }
-                        : { borderColor: '#E5E7EB', background: 'white' }
-                      }>
-                      <input type="radio" name="level_english" value={l.value}
-                        checked={sel} onChange={() => set('level_english', l.value)} className="sr-only" />
-                      <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
-                        style={{ borderColor: sel ? BLUE : '#D1D5DB' }}>
-                        {sel && <div className="w-2 h-2 rounded-full" style={{ background: BLUE }} />}
-                      </div>
-                      <span className="text-sm font-medium" style={{ color: sel ? BLUE : '#374151' }}>{l.label}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Maths + Coding */}
             <div className="grid grid-cols-2 gap-8">
+              {/* Maths */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t.maths_level}</p>
+                <p className="text-xs font-semibold text-gray-500 mb-3 tracking-wide">{t.maths_level}</p>
                 <div className="space-y-2">
-                  {PROFICIENCY(t).map(p => {
-                    const sel = data.level_maths === p.value
-                    return (
-                      <label key={p.value}
-                        className="flex items-center gap-3 h-11 px-3.5 rounded-xl border cursor-pointer transition-all"
-                        style={sel
-                          ? { borderColor: GREEN, background: '#F0FDF4' }
-                          : { borderColor: '#E5E7EB', background: 'white' }
-                        }>
-                        <input type="radio" name="level_maths" value={p.value}
-                          checked={sel} onChange={() => set('level_maths', p.value)} className="sr-only" />
-                        <div className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0"
-                          style={{ borderColor: sel ? GREEN : '#D1D5DB' }}>
-                          {sel && <div className="w-1.5 h-1.5 rounded-full" style={{ background: GREEN }} />}
-                        </div>
-                        <span className="text-sm font-medium" style={{ color: sel ? GREEN : '#374151' }}>{p.label}</span>
-                      </label>
-                    )
-                  })}
+                  {PROFICIENCY(t).map(o => (
+                    <RadioRow key={o.value} value={o.value} label={o.label}
+                      checked={data.level_maths === o.value}
+                      onChange={() => set('level_maths', o.value)}
+                      color="#1E8449" />
+                  ))}
                 </div>
               </div>
+              {/* Coding */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t.coding_level}</p>
+                <p className="text-xs font-semibold text-gray-500 mb-3 tracking-wide">{t.coding_level}</p>
                 <div className="space-y-2">
-                  {PROFICIENCY(t).map(p => {
-                    const sel = data.level_coding === p.value
-                    return (
-                      <label key={p.value}
-                        className="flex items-center gap-3 h-11 px-3.5 rounded-xl border cursor-pointer transition-all"
-                        style={sel
-                          ? { borderColor: BLUE, background: '#EFF6FF' }
-                          : { borderColor: '#E5E7EB', background: 'white' }
-                        }>
-                        <input type="radio" name="level_coding" value={p.value}
-                          checked={sel} onChange={() => set('level_coding', p.value)} className="sr-only" />
-                        <div className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0"
-                          style={{ borderColor: sel ? BLUE : '#D1D5DB' }}>
-                          {sel && <div className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }} />}
-                        </div>
-                        <span className="text-sm font-medium" style={{ color: sel ? BLUE : '#374151' }}>{p.label}</span>
-                      </label>
-                    )
-                  })}
+                  {PROFICIENCY(t).map(o => (
+                    <RadioRow key={o.value} value={o.value} label={o.label}
+                      checked={data.level_coding === o.value}
+                      onChange={() => set('level_coding', o.value)}
+                      color="#1A5276" />
+                  ))}
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* 06 Additional */}
-        <div>
-          <SectionHeading number="06" label={t.section_additional} />
-          <div className="space-y-4">
-            <FloatInput label={t.focus_area}>
-              <textarea rows={4} placeholder={t.ph_focus}
-                value={data.focus_area} onChange={e => set('focus_area', e.target.value)}
-                className={textArea} />
-            </FloatInput>
-            <FloatInput label={t.consultant}>
-              <input type="text" placeholder={t.ph_consultant}
-                value={data.consultant_name} onChange={e => set('consultant_name', e.target.value)}
-                className={inp} />
-            </FloatInput>
+        {/* 06 — Additional */}
+        <section>
+          <SectionDivider n="06" label={t.s_additional} />
+          <div className="space-y-5">
+            <div>
+              <Label>{t.focus_area}</Label>
+              <textarea rows={4} className={`${field} h-auto py-3 resize-none`}
+                placeholder={t.ph_focus}
+                value={data.focus_area} onChange={e => set('focus_area', e.target.value)} />
+            </div>
+            <div>
+              <Label>{t.consultant}</Label>
+              <input className={field} placeholder={t.ph_consultant}
+                value={data.consultant_name} onChange={e => set('consultant_name', e.target.value)} />
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* Submit */}
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs text-gray-400 leading-relaxed mb-6">{t.privacy}</p>
-          <button type="submit" disabled={submitting}
-            className="w-full h-14 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2.5 disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
-            style={{ background: DARK }}>
+        <div className="pt-2 border-t border-gray-100 space-y-4">
+          <p className="text-xs text-gray-400 leading-relaxed">{t.privacy}</p>
+          <button
+            type="submit"
+            disabled={submitting || !isValid}
+            className="w-full h-13 py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+            style={isValid
+              ? { background: '#111827', color: 'white', cursor: 'pointer' }
+              : { background: '#f3f4f6', color: '#9ca3af', cursor: 'not-allowed' }
+            }
+          >
             {submitting
-              ? <><Loader2 className="w-4 h-4 animate-spin" />{t.submitting}</>
-              : <>{t.submit}<ArrowRight className="w-4 h-4" /></>
+              ? <><Loader2 className="w-4 h-4 animate-spin" />{lang === 'en' ? 'Submitting…' : '提交中…'}</>
+              : t.submit
             }
           </button>
         </div>

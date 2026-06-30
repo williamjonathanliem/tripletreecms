@@ -189,10 +189,7 @@ export function StudentForm({ student, onClose }: Props) {
                   }
                 >
                   {active && (
-                    <span
-                      className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                      style={{ background: m.color }}
-                    />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: m.color }} />
                   )}
                   <span
                     className="text-[11px] font-bold leading-tight whitespace-pre-line"
@@ -215,7 +212,7 @@ export function StudentForm({ student, onClose }: Props) {
                 <SelectValue placeholder="Select a tier…" />
               </SelectTrigger>
               <SelectContent>
-                {TIERS.map(tier => <SelectItem key={tier} value={tier}>{tier}</SelectItem>)}
+                {TIERS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
             {errors.tier && <p className="text-xs text-red-500 mt-1.5">{errors.tier}</p>}
@@ -242,7 +239,6 @@ export function StudentForm({ student, onClose }: Props) {
                 className={inp(!!errors.enrolled_date)}
                 value={enrolledDate} onChange={e => setEnrolledDate(e.target.value)}
               />
-              {errors.enrolled_date && <p className="text-xs text-red-500 mt-1">{errors.enrolled_date}</p>}
             </div>
             <div>
               <label className="text-[11px] text-gray-400 mb-1.5 block">Branch</label>
@@ -257,7 +253,6 @@ export function StudentForm({ student, onClose }: Props) {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              {errors.branch && <p className="text-xs text-red-500 mt-1">{errors.branch}</p>}
             </div>
           </div>
         </div>
