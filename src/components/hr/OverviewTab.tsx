@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Users, GraduationCap, CalendarDays, Calendar, ArrowRight } from 'lucide-react'
+import { Users, GraduationCap, CalendarDays, Calendar, ArrowRight, FlaskConical, FileText, Mail } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { InviteTeacherDialog } from './InviteTeacherDialog'
 import { SubjectBadge } from '@/components/ui/SubjectBadge'
@@ -30,12 +30,16 @@ interface Props {
   totalStudents: number
   totalClasses: number
   upcomingThisWeek: number
+  totalTrials: number
+  totalSubmissions: number
+  totalParentsWithEmail: number
   teacherSubjectCounts: Record<Subject, number>
   onSwitchTab: (tab: string) => void
 }
 
 export function OverviewTab({
   totalTeachers, totalStudents, totalClasses, upcomingThisWeek,
+  totalTrials, totalSubmissions, totalParentsWithEmail,
   teacherSubjectCounts, onSwitchTab,
 }: Props) {
   const { lang } = useCmsLang()
@@ -48,7 +52,7 @@ export function OverviewTab({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">
-            {totalTeachers} staff · {totalStudents} students · {totalClasses} classes
+            {totalTeachers} staff · {totalStudents} students · {totalClasses} classes · {totalTrials} trials
           </p>
         </div>
         <InviteTeacherDialog onInvited={() => router.refresh()} />
@@ -56,10 +60,13 @@ export function OverviewTab({
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label={t.hr_overview.stat_teachers} value={totalTeachers} icon={Users} color="#1A5276" bg="#EBF5FB" />
-        <StatCard label={t.hr_overview.stat_students} value={totalStudents} icon={GraduationCap} color="#1E8449" bg="#EAFAF1" />
-        <StatCard label={t.hr_overview.stat_classes} value={totalClasses} icon={CalendarDays} color="#6C3483" bg="#F5EEF8" />
-        <StatCard label={t.hr_overview.stat_events} value={upcomingThisWeek} icon={Calendar} color="#B7770D" bg="#FEF9E7" />
+        <StatCard label={t.hr_overview.stat_teachers}   value={totalTeachers}        icon={Users}         color="#1A5276" bg="#EBF5FB" />
+        <StatCard label={t.hr_overview.stat_students}   value={totalStudents}         icon={GraduationCap} color="#1E8449" bg="#EAFAF1" />
+        <StatCard label={t.hr_overview.stat_classes}    value={totalClasses}          icon={CalendarDays}  color="#6C3483" bg="#F5EEF8" />
+        <StatCard label={t.hr_overview.stat_events}     value={upcomingThisWeek}      icon={Calendar}      color="#B7770D" bg="#FEF9E7" />
+        <StatCard label={t.hr_overview.stat_trials}     value={totalTrials}           icon={FlaskConical}  color="#0E7490" bg="#ECFEFF" />
+        <StatCard label={t.hr_overview.stat_submissions} value={totalSubmissions}     icon={FileText}      color="#B45309" bg="#FFFBEB" />
+        <StatCard label={t.hr_overview.stat_parents}    value={totalParentsWithEmail} icon={Mail}          color="#7C3AED" bg="#F5F3FF" />
       </div>
 
       {/* Teachers by subject */}

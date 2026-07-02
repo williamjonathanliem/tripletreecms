@@ -12,6 +12,7 @@ import { ScheduleCalendar } from '@/components/schedule/ScheduleCalendar'
 import { HRPaymentsTab } from './HRPaymentsTab'
 import { ParentsTab } from './ParentsTab'
 import { BranchesTab } from './BranchesTab'
+import { ParentAnnouncementsTab } from './ParentAnnouncementsTab'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
 import type { Teacher, ScheduleEvent, Subject, Announcement } from '@/types'
@@ -34,6 +35,9 @@ interface Props {
   classSubjectCounts: Record<Subject, number>
   totalStudents: number
   upcomingThisWeek: number
+  totalTrials: number
+  totalSubmissions: number
+  totalParentsWithEmail: number
   currentUserName?: string
   hrStudents: HRStudent[]
   branches: Branch[]
@@ -42,7 +46,9 @@ interface Props {
 export function HRView({
   defaultTab, teachers, classes, events, announcements,
   teacherSubjectCounts, classSubjectCounts,
-  totalStudents, upcomingThisWeek, currentUserName, hrStudents, branches,
+  totalStudents, upcomingThisWeek,
+  totalTrials, totalSubmissions, totalParentsWithEmail,
+  currentUserName, hrStudents, branches,
 }: Props) {
   const tab = defaultTab || 'overview'
   const { lang } = useCmsLang()
@@ -69,6 +75,9 @@ export function HRView({
           totalStudents={totalStudents}
           totalClasses={classes.length}
           upcomingThisWeek={upcomingThisWeek}
+          totalTrials={totalTrials}
+          totalSubmissions={totalSubmissions}
+          totalParentsWithEmail={totalParentsWithEmail}
           teacherSubjectCounts={teacherSubjectCounts}
           onSwitchTab={() => {}}
         />
@@ -94,7 +103,8 @@ export function HRView({
         />
       )}
 
-      {tab === 'announcements' && <AnnouncementsTab announcements={announcements} />}
+      {tab === 'announcements'        && <AnnouncementsTab announcements={announcements} />}
+      {tab === 'parent-announcements' && <ParentAnnouncementsTab />}
 
       {tab === 'analytics' && <AnalyticsTab />}
 

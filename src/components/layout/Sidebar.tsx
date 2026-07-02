@@ -7,7 +7,8 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, UserPlus, CalendarDays, MessageSquare,
   BookOpen, User, LogOut, Calendar, Bell, BarChart2, Clock, PieChart,
-  ClipboardList, FileText, CreditCard, ShieldCheck, Loader2, UserCog, MapPin,
+  ClipboardList, FileText, CreditCard, ShieldCheck, Loader2, UserCog,
+  MapPin, Mail,
 } from 'lucide-react'
 import { InstallButton } from '@/components/layout/InstallButton'
 import { cn } from '@/lib/utils'
@@ -23,69 +24,70 @@ interface SidebarProps {
 
 const NAV_LABELS = {
   en: {
-    // Shared
-    dashboard:    'Dashboard',
-    students:     'Students',
-    trial:        'Trial Students',
-    classes:      'Classes',
-    feedback:     'Class Log',
-    schedule:     'Schedule',
-    curriculum:   'Curriculum',
-    confirmation: 'Confirmation',
-    // HR Admin section labels
-    hr_section:   'HR Admin',
-    teacher_section: 'Teacher Tools',
-    // HR items
-    overview:     'Overview',
-    teachers:     'Teachers',
-    availability: 'Availability',
-    subjects:     'Subjects',
-    announcements:'Announcements',
-    analytics:    'Analytics',
-    submissions:  'Submissions',
-    payments:     'Payments',
-    parents:      'Parent Accounts',
-    branches:     'Branches',
-    // Bottom
-    profile:      'Profile',
-    signout:      'Sign Out',
+    dashboard:        'Dashboard',
+    students:         'Students',
+    trial:            'Trial Students',
+    classes:          'Classes',
+    feedback:         'Class Log',
+    schedule:         'Schedule',
+    curriculum:       'Curriculum',
+    confirmation:     'Confirmation',
+    overview:         'Overview',
+    teachers:         'Teachers',
+    availability:     'Availability',
+    subjects:         'Subjects',
+    staff_notices:    'Staff Notices',
+    parent_notices:   'Parent Notices',
+    submissions:      'Form Submissions',
+    payments:         'Payments',
+    parents:          'Parent Accounts',
+    branches:         'Branches',
+    analytics:        'Analytics',
+    profile:          'Profile',
+    signout:          'Sign Out',
+    // group labels
+    grp_people:       'People',
+    grp_classes:      'Classes',
+    grp_finance:      'Finance',
+    grp_comms:        'Communication',
+    grp_admin:        'Admin',
   },
   zh: {
-    // Shared
-    dashboard:    '主页',
-    students:     '学生',
-    trial:        '试课学生',
-    classes:      '课程',
-    feedback:     '课堂记录',
-    schedule:     '课程表',
-    curriculum:   '课程大纲',
-    confirmation: '确认书',
-    // HR Admin section labels
-    hr_section:   'HR 管理',
-    teacher_section: '教师功能',
-    // HR items
-    overview:     '总览',
-    teachers:     '教师',
-    availability: '空档时间',
-    subjects:     '科目',
-    announcements:'公告',
-    analytics:    '数据分析',
-    submissions:  '申请表',
-    payments:     '收费管理',
-    parents:      '家长账号',
-    branches:     '分校',
-    // Bottom
-    profile:      '个人资料',
-    signout:      '登出',
+    dashboard:        '主页',
+    students:         '学生',
+    trial:            '试课学生',
+    classes:          '课程',
+    feedback:         '课堂记录',
+    schedule:         '课程表',
+    curriculum:       '课程大纲',
+    confirmation:     '确认书',
+    overview:         '总览',
+    teachers:         '教师',
+    availability:     '空档时间',
+    subjects:         '科目',
+    staff_notices:    '员工公告',
+    parent_notices:   '家长通知',
+    submissions:      '申请表',
+    payments:         '收费管理',
+    parents:          '家长账号',
+    branches:         '分校',
+    analytics:        '数据分析',
+    profile:          '个人资料',
+    signout:          '登出',
+    grp_people:       '人员',
+    grp_classes:      '课程',
+    grp_finance:      '财务',
+    grp_comms:        '通讯',
+    grp_admin:        '管理',
   },
 } as const
 
 export function Sidebar({ role, subjects }: SidebarProps) {
-  const pathname = usePathname()
+  const pathname    = usePathname()
   const searchParams = useSearchParams()
-  const currentTab = searchParams.get('tab')
-  const router = useRouter()
-  const supabase = createClient()
+  const currentTab  = searchParams.get('tab')
+  const router      = useRouter()
+  const supabase    = createClient()
   const { lang, toggle } = useCmsLang()
   const t = NAV_LABELS[lang]
   const [signingOut, setSigningOut] = useState(false)
@@ -97,6 +99,7 @@ export function Sidebar({ role, subjects }: SidebarProps) {
     router.push('/login')
   }
 
+  // ── Teacher nav ────────────────────────────────────────────────────────────
   const teacherNav = [
     { href: '/dashboard',    label: t.dashboard,    icon: LayoutDashboard },
     { href: '/students',     label: t.students,     icon: Users },
@@ -108,44 +111,78 @@ export function Sidebar({ role, subjects }: SidebarProps) {
     { href: '/confirmation', label: t.confirmation, icon: FileText },
   ]
 
-  // HR admin-only tabs (inside /hr?tab=...)
-  const hrAdminNav = [
-    { href: '/hr',                   label: t.overview,      icon: LayoutDashboard, tab: null as string | null },
-    { href: '/hr?tab=teachers',      label: t.teachers,      icon: Users,           tab: 'teachers' },
-    { href: '/hr?tab=payments',      label: t.payments,      icon: CreditCard,      tab: 'payments' },
-    { href: '/hr?tab=availability',  label: t.availability,  icon: Clock,           tab: 'availability' },
-    { href: '/hr?tab=subjects',      label: t.subjects,      icon: PieChart,        tab: 'subjects' },
-    { href: '/hr?tab=announcements', label: t.announcements, icon: Bell,            tab: 'announcements' },
-    { href: '/hr?tab=analytics',     label: t.analytics,     icon: BarChart2,       tab: 'analytics' },
-    { href: '/hr?tab=submissions',   label: t.submissions,   icon: ClipboardList,   tab: 'submissions' },
-    { href: '/hr?tab=confirmation',  label: t.confirmation,  icon: FileText,        tab: 'confirmation' },
-    { href: '/hr?tab=parents',       label: t.parents,       icon: UserCog,         tab: 'parents'       },
-    { href: '/hr?tab=branches',      label: t.branches,      icon: MapPin,          tab: 'branches'      },
+  // ── HR nav groups ──────────────────────────────────────────────────────────
+  type NavItem = { href: string; label: string; icon: React.ElementType; tab?: string | null; isPage?: boolean }
+  type NavGroup = { label?: string; items: NavItem[] }
+
+  const hrNavGroups: NavGroup[] = [
+    {
+      items: [
+        { href: '/hr', label: t.overview, icon: LayoutDashboard, tab: null },
+      ],
+    },
+    {
+      label: t.grp_people,
+      items: [
+        { href: '/hr?tab=teachers', label: t.teachers, icon: Users,    tab: 'teachers' },
+        { href: '/students',         label: t.students, icon: UserPlus, isPage: true },
+        { href: '/trial',            label: t.trial,    icon: UserPlus, isPage: true },
+        { href: '/hr?tab=parents',  label: t.parents,  icon: UserCog,  tab: 'parents' },
+      ],
+    },
+    {
+      label: t.grp_classes,
+      items: [
+        { href: '/classes',             label: t.classes,      icon: CalendarDays, isPage: true },
+        { href: '/hr?tab=schedule',     label: t.schedule,     icon: Calendar,     tab: 'schedule' },
+        { href: '/hr?tab=availability', label: t.availability, icon: Clock,        tab: 'availability' },
+      ],
+    },
+    {
+      label: t.grp_finance,
+      items: [
+        { href: '/hr?tab=payments',     label: t.payments,     icon: CreditCard, tab: 'payments' },
+        { href: '/hr?tab=confirmation', label: t.confirmation, icon: FileText,   tab: 'confirmation' },
+      ],
+    },
+    {
+      label: t.grp_comms,
+      items: [
+        { href: '/hr?tab=announcements',        label: t.staff_notices,  icon: Bell,          tab: 'announcements' },
+        { href: '/hr?tab=parent-announcements', label: t.parent_notices, icon: Mail,          tab: 'parent-announcements' },
+        { href: '/hr?tab=submissions',          label: t.submissions,    icon: ClipboardList, tab: 'submissions' },
+      ],
+    },
+    {
+      label: t.grp_admin,
+      items: [
+        { href: '/hr?tab=subjects',  label: t.subjects,  icon: PieChart,  tab: 'subjects' },
+        { href: '/hr?tab=branches',  label: t.branches,  icon: MapPin,    tab: 'branches' },
+        { href: '/hr?tab=analytics', label: t.analytics, icon: BarChart2, tab: 'analytics' },
+      ],
+    },
   ]
 
-  // Teacher tools available to HR (standalone pages)
-  const hrTeacherNav = [
-    { href: '/students', label: t.students, icon: Users },
-    { href: '/trial',    label: t.trial,    icon: UserPlus },
-  ]
-
-  function isHrAdminActive(tab: string | null) {
+  // ── Active state helpers ───────────────────────────────────────────────────
+  function isHrTabActive(tab: string | null | undefined) {
     if (pathname !== '/hr') return false
-    if (tab === null) return !currentTab || currentTab === 'overview'
+    if (!tab) return !currentTab || currentTab === 'overview'
     return currentTab === tab
   }
-
   function isPageActive(href: string) {
     return pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
   }
 
+  // ── NavLink ────────────────────────────────────────────────────────────────
   function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
     return (
-      <Link href={href}
+      <Link
+        href={href}
         className={cn(
           'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
           active ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-        )}>
+        )}
+      >
         <Icon className="w-4 h-4 shrink-0" />
         <span>{label}</span>
       </Link>
@@ -154,6 +191,7 @@ export function Sidebar({ role, subjects }: SidebarProps) {
 
   return (
     <aside className="hidden md:flex w-60 h-screen sticky top-0 bg-white border-r border-gray-100 flex-col shrink-0">
+
       {/* Logo */}
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
@@ -170,45 +208,37 @@ export function Sidebar({ role, subjects }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 overflow-y-auto">
+      <nav className="flex-1 p-3 overflow-y-auto space-y-4">
         {role === 'hr' ? (
           <>
-            {/* HR Admin section */}
-            <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
+            {/* HR badge */}
+            <div className="flex items-center gap-2 px-3 py-1">
               <ShieldCheck className="w-3 h-3 text-[#1A5276]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#1A5276]">{t.hr_section}</span>
-            </div>
-            <div className="space-y-0.5 mb-4">
-              {hrAdminNav.map(item => (
-                <NavLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isHrAdminActive(item.tab)}
-                />
-              ))}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#1A5276]">
+                {lang === 'zh' ? 'HR 管理' : 'HR Admin'}
+              </span>
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-gray-100 mb-4" />
-
-            {/* Teacher Tools section */}
-            <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
-              <Users className="w-3 h-3 text-gray-400" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t.teacher_section}</span>
-            </div>
-            <div className="space-y-0.5">
-              {hrTeacherNav.map(item => (
-                <NavLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isPageActive(item.href)}
-                />
-              ))}
-            </div>
+            {hrNavGroups.map((group, gi) => (
+              <div key={gi}>
+                {group.label && (
+                  <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    {group.label}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {group.items.map(item => (
+                    <NavLink
+                      key={item.href}
+                      href={item.href}
+                      label={item.label}
+                      icon={item.icon}
+                      active={item.isPage ? isPageActive(item.href) : isHrTabActive(item.tab)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </>
         ) : (
           <div className="space-y-0.5">

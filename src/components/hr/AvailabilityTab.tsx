@@ -14,7 +14,10 @@ function getWeekStart(d = new Date()) {
   const diff = day === 0 ? -6 : 1 - day
   const monday = new Date(d)
   monday.setDate(d.getDate() + diff)
-  return monday.toISOString().split('T')[0]
+  const y  = monday.getFullYear()
+  const m  = String(monday.getMonth() + 1).padStart(2, '0')
+  const dd = String(monday.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
 }
 
 type AvailRow = {
@@ -54,6 +57,27 @@ export function AvailabilityTab({ teachers }: { teachers: Teacher[] }) {
 
   function isAvail(teacherId: string, day: number) {
     return rows.find(r => r.teacher_id === teacherId && r.day_of_week === day)
+  }
+
+  async function toggleCell(teacherId: string, day: number) {
+    const existing = isAvail(teacherId, day)
+    if (!existing) {
+      await supabase.from('teacher_availability').upsert(
+        { teacher_id: teacherId, day_of_week: day, is_available: true, week_start: weekStart, note: null },
+        { onConflict: 'teacher_id,day_of_week,week_start' }
+      )
+      setRows(prev => [...prev, { teacher_id: teacherId, day_of_week: day, is_available: true, note: null }])
+    } else if (existing.is_available) {
+      await supabase.from('teacher_availability').upsert(
+        { teacher_id: teacherId, day_of_week: day, is_available: false, week_start: weekStart, note: null },
+        { onConflict: 'teacher_id,day_of_week,week_start' }
+      )
+      setRows(prev => prev.map(r => r.teacher_id === teacherId && r.day_of_week === day ? { ...r, is_available: false } : r))
+    } else {
+      await supabase.from('teacher_availability').delete()
+        .eq('teacher_id', teacherId).eq('day_of_week', day).eq('week_start', weekStart)
+      setRows(prev => prev.filter(r => !(r.teacher_id === teacherId && r.day_of_week === day)))
+    }
   }
 
   // cover finder: who is available on a given day + teaches a given subject
@@ -104,9 +128,15 @@ export function AvailabilityTab({ teachers }: { teachers: Teacher[] }) {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50">
           <h3 className="text-sm font-semibold text-gray-900">
-            {t.hr_availability.week_of} {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {(() => {
+              const start = new Date(weekStart + 'T00:00:00')
+              const end   = new Date(weekStart + 'T00:00:00')
+              end.setDate(start.getDate() + 6)
+              const fmt = (d: Date) => d.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
+              return `${fmt(start)} – ${fmt(end)} ${start.getFullYear()}`
+            })()}
           </h3>
-          <p className="text-xs text-gray-400 mt-0.5">{t.hr_availability.legend}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Resets every Monday · {t.hr_availability.legend} · Click a cell to edit on behalf of a teacher.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[600px]">
@@ -151,13 +181,20 @@ export function AvailabilityTab({ teachers }: { teachers: Teacher[] }) {
                       const row = isAvail(teacher.id, i)
                       return (
                         <td key={i} className="px-3 py-3 text-center">
-                          {!row ? (
-                            <span className="inline-block w-6 h-6 rounded-full bg-gray-100" title="Not reported" />
-                          ) : row.is_available ? (
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 font-bold text-xs" title={row.note ?? 'Available'}>✓</span>
-                          ) : (
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-400 font-bold text-xs" title={row.note ?? 'Unavailable'}>✕</span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleCell(teacher.id, i)}
+                            title={!row ? 'Click to mark available' : row.is_available ? 'Available — click to mark unavailable' : 'Unavailable — click to clear'}
+                            className="transition-transform hover:scale-110 active:scale-95"
+                          >
+                            {!row ? (
+                              <span className="inline-block w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" />
+                            ) : row.is_available ? (
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 font-bold text-xs">✓</span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-400 font-bold text-xs">✕</span>
+                            )}
+                          </button>
                         </td>
                       )
                     })}

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, Trash2, Loader2, Megaphone } from 'lucide-react'
+import { Plus, Trash2, Loader2, Megaphone, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -21,30 +21,55 @@ function NewAnnouncementDialog({ onCreated }: { onCreated: () => void }) {
   const { lang } = useCmsLang()
   const t = CMS_T[lang]
 
-  const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
+  const [open,      setOpen]      = useState(false)
+  const [title,     setTitle]     = useState('')
+  const [body,      setBody]      = useState('')
   const [expiresAt, setExpiresAt] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [emailStaff, setEmailStaff] = useState(false)
+  const [saving,    setSaving]    = useState(false)
   const supabase = createClient()
 
   async function submit() {
     if (!title.trim() || !body.trim()) { toast.error('Title and message are required'); return }
     setSaving(true)
+
     const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('announcements').insert({
-      title: title.trim(),
-      body: body.trim(),
+      title:      title.trim(),
+      body:       body.trim(),
       created_by: user?.id ?? null,
       expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
     })
+    if (error) { setSaving(false); toast.error('Failed to post announcement'); return }
+
+    if (emailStaff) {
+      try {
+        const res  = await fetch('/api/send-announcement-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: title.trim(), body: body.trim(), sendToStaff: true, sendToParents: false }),
+        })
+        const json = await res.json()
+        if (res.ok && json.staffSent > 0) {
+          toast.success(`Posted & emailed to ${json.staffSent} staff`)
+        } else {
+          toast.success('Announcement posted')
+          if (!res.ok) toast.error(json.error ?? 'Email failed')
+        }
+      } catch {
+        toast.success('Announcement posted')
+        toast.error('Email failed — check SMTP settings')
+      }
+    } else {
+      toast.success('Announcement posted')
+    }
+
     setSaving(false)
-    if (error) { toast.error('Failed to post announcement'); return }
-    toast.success('Announcement posted to all staff')
     setOpen(false)
     setTitle('')
     setBody('')
     setExpiresAt('')
+    setEmailStaff(false)
     onCreated()
   }
 
@@ -57,32 +82,38 @@ function NewAnnouncementDialog({ onCreated }: { onCreated: () => void }) {
       >
         <Plus className="w-4 h-4" /> {t.hr_announcements.new_btn}
       </button>
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{t.hr_announcements.post_title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-1">
-            <p className="text-xs text-gray-500">{t.hr_announcements.banner_hint}</p>
+            <p className="text-xs text-gray-400">{t.hr_announcements.banner_hint}</p>
+
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t.hr_announcements.title_label}</Label>
               <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={t.hr_announcements.title_placeholder} />
             </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t.hr_announcements.message_label}</Label>
-              <Textarea
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                placeholder={t.hr_announcements.message_placeholder}
-                rows={4}
-              />
+              <Textarea value={body} onChange={e => setBody(e.target.value)} placeholder={t.hr_announcements.message_placeholder} rows={4} />
             </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 {t.hr_announcements.expires_label} <span className="text-gray-400 normal-case font-normal">({t.hr_announcements.expires_hint})</span>
               </Label>
               <Input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} />
             </div>
+
+            <label className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50 cursor-pointer select-none">
+              <input type="checkbox" checked={emailStaff} onChange={e => setEmailStaff(e.target.checked)} className="w-4 h-4 rounded accent-[#1A5276]" />
+              <Mail className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-medium text-gray-700">Also email all active staff</span>
+            </label>
+
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={() => setOpen(false)}
                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
@@ -107,8 +138,8 @@ export function AnnouncementsTab({ announcements: initial }: { announcements: An
   const t = CMS_T[lang]
 
   const [announcements, setAnnouncements] = useState(initial)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const router = useRouter()
+  const [deleting,      setDeleting]      = useState<string | null>(null)
+  const router   = useRouter()
   const supabase = createClient()
 
   async function deleteAnnouncement(id: string) {
@@ -153,11 +184,8 @@ export function AnnouncementsTab({ announcements: initial }: { announcements: An
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => deleteAnnouncement(a.id)}
-                  disabled={deleting === a.id}
-                  className="shrink-0 p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                >
+                <button onClick={() => deleteAnnouncement(a.id)} disabled={deleting === a.id}
+                  className="shrink-0 p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50">
                   {deleting === a.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </button>
               </div>

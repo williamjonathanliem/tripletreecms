@@ -19,7 +19,10 @@ function getMondayOfWeek(d = new Date()) {
   const diff = day === 0 ? -6 : 1 - day
   const monday = new Date(d)
   monday.setDate(d.getDate() + diff)
-  return monday.toISOString().split('T')[0]
+  const y  = monday.getFullYear()
+  const m  = String(monday.getMonth() + 1).padStart(2, '0')
+  const dd = String(monday.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
 }
 
 type DayState = {

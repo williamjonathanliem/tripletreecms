@@ -19,6 +19,9 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
     { data: events },
     { data: announcements },
     { data: branches },
+    { count: trialCount },
+    { count: submissionsCount },
+    { count: parentsCount },
   ] = await Promise.all([
     supabase.from('teachers').select('*').order('created_at'),
     supabase.from('students').select('id, name, age, tier, branch, subject, fee_status, fee_note, fee_amount, fee_due_date, enrolled_date, teacher_id, parent_contact, parent_email').order('name'),
@@ -26,6 +29,9 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
     supabase.from('schedule_events').select('*').order('event_date').order('start_time'),
     supabase.from('announcements').select('*').order('created_at', { ascending: false }),
     supabase.from('branches').select('*').order('name'),
+    supabase.from('trial_students').select('*', { count: 'exact', head: true }),
+    supabase.from('form_submissions').select('*', { count: 'exact', head: true }),
+    supabase.from('students').select('*', { count: 'exact', head: true }).not('parent_email', 'is', null),
   ])
 
   const teacherMap = Object.fromEntries((teachers ?? []).map(t => [t.id, t.name]))
@@ -76,6 +82,9 @@ export default async function HRPage({ searchParams }: { searchParams: Promise<{
         classSubjectCounts={classSubjectCounts}
         totalStudents={allStudents?.length ?? 0}
         upcomingThisWeek={upcomingThisWeek}
+        totalTrials={trialCount ?? 0}
+        totalSubmissions={submissionsCount ?? 0}
+        totalParentsWithEmail={parentsCount ?? 0}
         currentUserName={ctx.name}
         hrStudents={hrStudents}
         branches={(branches ?? []) as { id: string; name: string; active: boolean; created_at: string }[]}

@@ -1,10 +1,23 @@
 'use client'
 
-import { useState } from 'react'
-import { Loader2, FileDown, RotateCcw, GraduationCap, BookOpen, Sparkles, Plus, X, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Loader2, FileDown, RotateCcw, GraduationCap, BookOpen, Sparkles, Plus, X, ChevronDown, History, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import type { BootcampType, FeeType, PaymentStatus, ConfirmationMode } from '@/lib/pdf/bootcamp-confirmation'
+
+type HistoryRow = {
+  id: string
+  created_at: string
+  student_name: string
+  mode: string
+  program_name: string | null
+  confirmation_number: string | null
+  issued_by: string | null
+  payment_status: string | null
+  start_date: string | null
+}
 
 // ── Config ─────────────────────────────────────────────────────────────────
 
@@ -297,8 +310,25 @@ interface Props {
 export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
   const { lang } = useCmsLang()
   const t = UI_T[lang]
+  const supabase = createClient()
 
   const [mode, setMode] = useState<ConfirmationMode>('bootcamp')
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<HistoryRow[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  async function loadHistory() {
+    setHistoryLoading(true)
+    const { data } = await supabase
+      .from('confirmation_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setHistory(data ?? [])
+    setHistoryLoading(false)
+  }
+
+  useEffect(() => { loadHistory() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Shared ──
   const [studentName, setStudentName] = useState('')
@@ -464,6 +494,25 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
       a.click()
       URL.revokeObjectURL(url)
       toast.success(t.ok)
+
+      // Save to history
+      const { data: { user } } = await supabase.auth.getUser()
+      const programLabel = mode === 'bootcamp'
+        ? (lang === 'zh' ? BOOTCAMPS[bootcamp].label_zh : BOOTCAMPS[bootcamp].label_en)
+        : mode === 'class'
+        ? `${classSubject === 'custom' ? customSubjectName : classSubject}${classTier ? ` – ${classTier}` : ''}`
+        : workshopName
+      await supabase.from('confirmation_history').insert({
+        student_name:        studentName.trim(),
+        mode,
+        program_name:        programLabel,
+        confirmation_number: payload.confirmation_number,
+        issued_by:           issuedBy.trim() || 'Triple Tree Staff',
+        payment_status:      paymentStatus,
+        start_date:          (mode === 'bootcamp' ? startDate : mode === 'class' ? startDate : workshopDate) || null,
+        created_by:          user?.id ?? null,
+      })
+      loadHistory()
     } catch {
       toast.error(t.fail)
     } finally {
@@ -485,8 +534,66 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
     setWorkshopFee(''); setWorkshopFeeLabel(''); setCustomTerms([])
   }
 
+  const MODE_LABELS: Record<string, string> = { bootcamp: 'Bootcamp', class: 'Regular Class', workshop: 'Workshop' }
+  const STATUS_COLORS: Record<string, string> = { paid: '#1E8449', deposit: '#B7770D', pending: '#6B7280' }
+
   return (
     <div className="space-y-6 max-w-3xl">
+
+      {/* ── History toggle ── */}
+      <div className="flex items-center justify-between">
+        <div />
+        <button
+          type="button"
+          onClick={() => setShowHistory(v => !v)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          <History className="w-4 h-4" />
+          {showHistory ? 'Hide History' : `History (${history.length})`}
+        </button>
+      </div>
+
+      {/* ── History panel ── */}
+      {showHistory && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-gray-50 flex items-center gap-2">
+            <History className="w-4 h-4 text-gray-400" />
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirmation History</p>
+          </div>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-10 gap-2 text-gray-400 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+            </div>
+          ) : history.length === 0 ? (
+            <div className="py-10 text-center text-sm text-gray-400">No confirmations generated yet.</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {history.map(h => (
+                <div key={h.id} className="px-5 py-3.5 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gray-50">
+                    {h.mode === 'bootcamp' ? <GraduationCap className="w-4 h-4 text-[#1A5276]" /> : h.mode === 'class' ? <BookOpen className="w-4 h-4 text-[#1E8449]" /> : <Sparkles className="w-4 h-4 text-[#7D3C98]" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{h.student_name}</p>
+                    <p className="text-xs text-gray-400 truncate">{h.program_name ?? MODE_LABELS[h.mode]} · {h.confirmation_number}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {h.payment_status && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: STATUS_COLORS[h.payment_status] + '18', color: STATUS_COLORS[h.payment_status] }}>
+                        {h.payment_status}
+                      </span>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1 justify-end">
+                      <Clock className="w-3 h-3" />
+                      {new Date(h.created_at).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Mode selector ── */}
       <div>
