@@ -385,12 +385,12 @@ export default function FormPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label required>{t.contact} <span className="normal-case font-normal text-gray-400 tracking-normal">({lang === 'en' ? 'or email' : '或电邮'})</span></Label>
+                <Label required>{t.contact} <span className="normal-case font-normal text-gray-400 tracking-normal"></span></Label>
                 <input type="tel" className={field} placeholder={t.ph_contact}
                   value={data.contact} onChange={e => set('contact', e.target.value)} />
               </div>
               <div>
-                <Label required>{t.email} <span className="normal-case font-normal text-gray-400 tracking-normal">({lang === 'en' ? 'or contact' : '或电话'})</span></Label>
+                <Label required>{t.email} <span className="normal-case font-normal text-gray-400 tracking-normal"></span></Label>
                 <input type="email" className={field} placeholder={t.ph_email}
                   value={data.email} onChange={e => set('email', e.target.value)} />
               </div>
