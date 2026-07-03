@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       .not('parent_email', 'is', null)
 
     // Deduplicate — one parent may have multiple children
-    const uniqueParentEmails = [...new Set((students ?? []).map(s => s.parent_email as string).filter(Boolean))]
+    const uniqueParentEmails = Array.from(new Set((students ?? []).map(s => s.parent_email as string).filter(Boolean)))
 
     const parentResults = await Promise.allSettled(
       uniqueParentEmails.map(email =>
