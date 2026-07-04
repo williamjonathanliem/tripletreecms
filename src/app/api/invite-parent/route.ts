@@ -4,13 +4,17 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getTeacherContext } from '@/lib/teacher'
 import { getAppUrl } from '@/lib/app-url'
+import { buildEmail } from '@/lib/email-template'
+import { getCentreSettings } from '@/lib/centre-settings'
+
+export const maxDuration = 30
 
 function createTransport() {
   return nodemailer.createTransport({
     host:   process.env.SMTP_HOST,
     port:   Number(process.env.SMTP_PORT ?? 587),
     secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    auth:   { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   })
 }
 
@@ -18,33 +22,32 @@ function buildParentEmail(opts: {
   inviteUrl: string
   studentName: string
   fromName: string
+  centreSettings?: import('@/lib/centre-settings').CentreSettings
 }) {
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
-    <div style="background:#1E8449;padding:28px 32px">
-      <p style="margin:0;color:#fff;font-size:18px;font-weight:700">Triple Tree Enrichment Centre</p>
-      <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:13px">Parent Portal Invitation</p>
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.8">Dear Parent,</p>
+    <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.8">
+      You have been invited to access the <strong>Triple Tree Parent Portal</strong> to track
+      <strong>${opts.studentName}</strong>'s progress, schedule, attendance, and fee status — all in one place.
+    </p>
+    <div style="text-align:center;margin:28px 0">
+      <a href="${opts.inviteUrl}"
+        style="display:inline-block;background:#1E8449;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:14px 32px;border-radius:12px;letter-spacing:0.01em">
+        Set Up My Account →
+      </a>
     </div>
-    <div style="padding:32px;color:#374151;font-size:14px;line-height:1.7">
-      <p>Dear Parent,</p>
-      <p>You have been invited to access the Triple Tree Parent Portal to track <strong>${opts.studentName}</strong>'s progress, schedule, attendance, and fee status.</p>
-      <div style="text-align:center;margin:28px 0">
-        <a href="${opts.inviteUrl}" style="display:inline-block;background:#1E8449;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:10px">
-          Set Up My Account
-        </a>
-      </div>
-      <p style="color:#9CA3AF;font-size:12px">This link expires in 24 hours. If you didn't expect this, you can ignore this email.</p>
-    </div>
-    <div style="padding:20px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
-      <p style="margin:0;font-size:12px;color:#9CA3AF">Sent by ${opts.fromName}</p>
-    </div>
-  </div>
-</body>
-</html>`
+    <p style="margin:20px 0 0;color:#9CA3AF;font-size:12px;text-align:center">
+      This link expires in 24 hours. If you did not expect this invitation, you may safely ignore it.
+    </p>`
+
+  const html = buildEmail({
+    type: 'parent-invite',
+    title: `You're invited to the Triple Tree Parent Portal`,
+    body,
+    isHtml: true,
+    senderName: opts.fromName,
+    settings: opts.centreSettings,
+  })
 
   const text = `Dear Parent,\n\nYou've been invited to the Triple Tree Parent Portal to track ${opts.studentName}'s progress.\n\nSet up your account here: ${opts.inviteUrl}\n\nThis link expires in 24 hours.`
 
@@ -104,6 +107,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'SMTP not configured' }, { status: 500 })
   }
 
+  const centreSettings = await getCentreSettings()
   const fromEmail = process.env.SMTP_FROM ?? process.env.SMTP_USER!
   const fromName  = process.env.SMTP_FROM_NAME ?? 'Triple Tree Enrichment Centre'
 
@@ -134,7 +138,7 @@ export async function POST(req: NextRequest) {
 
   const tokenHash = linkData.properties.hashed_token
   const inviteUrl = `${appUrl}/set-password?token_hash=${tokenHash}&type=invite`
-  const { html, text } = buildParentEmail({ inviteUrl, studentName, fromName })
+  const { html, text } = buildParentEmail({ inviteUrl, studentName, fromName, centreSettings })
 
   try {
     const transport = createTransport()

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, UserPlus, CalendarDays, MessageSquare,
   BookOpen, User, LogOut, Calendar, Bell, BarChart2, Clock, PieChart,
   ClipboardList, FileText, CreditCard, ShieldCheck, Loader2, UserCog,
-  MapPin, Mail,
+  MapPin, Mail, Settings,
 } from 'lucide-react'
 import { InstallButton } from '@/components/layout/InstallButton'
 import { cn } from '@/lib/utils'
@@ -43,6 +43,7 @@ const NAV_LABELS = {
     parents:          'Parent Accounts',
     branches:         'Branches',
     analytics:        'Analytics',
+    settings:         'Settings',
     profile:          'Profile',
     signout:          'Sign Out',
     // group labels
@@ -72,6 +73,7 @@ const NAV_LABELS = {
     parents:          '家长账号',
     branches:         '分校',
     analytics:        '数据分析',
+    settings:         '系统设置',
     profile:          '个人资料',
     signout:          '登出',
     grp_people:       '人员',
@@ -156,9 +158,10 @@ export function Sidebar({ role, subjects }: SidebarProps) {
     {
       label: t.grp_admin,
       items: [
-        { href: '/hr?tab=subjects',  label: t.subjects,  icon: PieChart,  tab: 'subjects' },
-        { href: '/hr?tab=branches',  label: t.branches,  icon: MapPin,    tab: 'branches' },
-        { href: '/hr?tab=analytics', label: t.analytics, icon: BarChart2, tab: 'analytics' },
+        { href: '/hr?tab=subjects',  label: t.subjects,  icon: PieChart,   tab: 'subjects' },
+        { href: '/hr?tab=branches',  label: t.branches,  icon: MapPin,     tab: 'branches' },
+        { href: '/hr?tab=analytics', label: t.analytics, icon: BarChart2,  tab: 'analytics' },
+        { href: '/hr?tab=settings',  label: t.settings,  icon: Settings,   tab: 'settings' },
       ],
     },
   ]

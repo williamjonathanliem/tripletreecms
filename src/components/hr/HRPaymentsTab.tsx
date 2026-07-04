@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, CreditCard, Download, Search, ChevronDown, ChevronUp, AlertCircle, TrendingUp, MessageCircle, Mail, X, CheckCircle2 } from 'lucide-react'
+import { Loader2, CreditCard, Download, Search, ChevronDown, ChevronUp, AlertCircle, TrendingUp, MessageCircle, Mail, X, CheckCircle2, UserPlus } from 'lucide-react'
 import { downloadReceipt } from '@/components/students/FeeReceiptPDF'
 import type { Subject } from '@/types'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
@@ -65,6 +65,8 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
   const [expanded, setExpanded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [inviteSent, setInviteSent] = useState(false)
   const { lang } = useCmsLang()
   const p = CMS_T[lang].payments
 
@@ -79,6 +81,7 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
 
   async function save() {
     setSaving(true)
+    const prevStatus = student.fee_status ?? 'unpaid'
     const { error } = await supabase
       .from('students')
       .update({
@@ -91,7 +94,38 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
     setSaving(false)
     if (error) { toast.error(p.failed_update); return }
     toast.success(`${student.name} — ${p.updated_success}`)
+
+    // Auto-send parent portal invite when first marked as paid
+    if (status === 'paid' && prevStatus !== 'paid' && student.parent_email) {
+      sendInvite(student.parent_email)
+    }
+
     setExpanded(false)
+  }
+
+  async function sendInvite(email?: string) {
+    const target = email ?? student.parent_email
+    if (!target) { toast.error('No parent email on file'); return }
+    setInviting(true)
+    try {
+      const res = await fetch('/api/invite-parent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: student.id, email: target }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error ?? 'Could not send invite'); return }
+      if (json.method === 'existing') {
+        toast.success('Parent already has an account — they can log in directly')
+      } else {
+        toast.success(`Parent portal invite sent to ${target}`)
+      }
+      setInviteSent(true)
+    } catch {
+      toast.error('Invite failed — check SMTP settings')
+    } finally {
+      setInviting(false)
+    }
   }
 
   async function handleDownload() {
@@ -269,6 +303,25 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
           <input type="text" value={note} onChange={e => setNote(e.target.value)}
             placeholder={p.note_placeholder}
             className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-700 focus:outline-none focus:border-gray-400 transition-colors placeholder:text-gray-300" />
+
+          {/* Parent portal invite */}
+          {student.parent_email && (
+            <button
+              onClick={() => sendInvite()}
+              disabled={inviting}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all"
+              style={inviteSent
+                ? { background: '#EAFAF1', color: '#1E8449', borderColor: '#A9DFBF' }
+                : { background: 'white', color: '#1A5276', borderColor: '#AED6F1' }
+              }
+            >
+              {inviting
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <UserPlus className="w-3.5 h-3.5" />
+              }
+              {inviteSent ? 'Invite sent ✓' : `Send parent portal invite → ${student.parent_email}`}
+            </button>
+          )}
 
           {/* Save / Cancel */}
           <div className="flex gap-2">

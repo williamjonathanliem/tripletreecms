@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getTeacherContext } from '@/lib/teacher'
+import { buildEmail } from '@/lib/email-template'
+import { getCentreSettings } from '@/lib/centre-settings'
+
+export const maxDuration = 60
 
 function createTransport() {
   return nodemailer.createTransport({
@@ -15,7 +19,7 @@ function createTransport() {
   })
 }
 
-function buildEmail(opts: {
+function buildFeeEmail(opts: {
   studentName: string
   parentEmail: string
   dueDate: string | null
@@ -26,6 +30,7 @@ function buildEmail(opts: {
   templateBody: string
   fromName: string
   fromEmail: string
+  settings?: import('@/lib/centre-settings').CentreSettings
 }) {
   const amountStr = opts.feeAmount
     ? `RM ${parseFloat(opts.feeAmount).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -44,23 +49,7 @@ function buildEmail(opts: {
     .replace(/\{\{student\}\}/g, opts.studentName)
     .replace(/\{\{amount\}\}/g, amountStr)
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
-    <div style="background:#1E8449;padding:28px 32px">
-      <p style="margin:0;color:#fff;font-size:18px;font-weight:700">Triple Tree Enrichment Centre</p>
-      <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:13px">Fee Payment Reminder</p>
-    </div>
-    <div style="padding:32px;color:#374151;font-size:14px;line-height:1.7;white-space:pre-line">${body.replace(/\n/g, '<br>')}</div>
-    <div style="padding:20px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
-      <p style="margin:0;font-size:12px;color:#9CA3AF">This is an automated message from Triple Tree CMS. Please do not reply to this email.</p>
-    </div>
-  </div>
-</body>
-</html>`
+  const html = buildEmail({ type: 'fee-reminder', title: emailSubject, body, senderName: opts.fromName, settings: opts.settings })
 
   return { subject: emailSubject, html, text: body }
 }
@@ -102,38 +91,48 @@ export async function POST(req: NextRequest) {
   const fromEmail = process.env.SMTP_FROM ?? process.env.SMTP_USER!
   const fromName  = process.env.SMTP_FROM_NAME ?? 'Triple Tree Enrichment Centre'
   const transport = createTransport()
+  const settings  = await getCentreSettings()
 
-  const results = await Promise.allSettled(
-    students.map(async (s) => {
-      const { subject: emailSubject, html, text } = buildEmail({
-        studentName:     s.name,
-        parentEmail:     s.parent_email!,
-        dueDate:         s.fee_due_date,
-        feeNote:         s.fee_note,
-        feeAmount:       (s as Record<string, unknown>).fee_amount as string | null ?? null,
-        subject:         s.subject,
-        templateSubject,
-        templateBody,
-        fromName,
-        fromEmail,
+  let sent = 0
+  const errors: { email: string | null; reason: string }[] = []
+
+  const BATCH = 5
+  for (let i = 0; i < students.length; i += BATCH) {
+    const batch = students.slice(i, i + BATCH)
+    const batchResults = await Promise.allSettled(
+      batch.map(async (s) => {
+        const { subject: emailSubject, html, text } = buildFeeEmail({
+          studentName:     s.name,
+          parentEmail:     s.parent_email!,
+          dueDate:         s.fee_due_date,
+          feeNote:         s.fee_note,
+          feeAmount:       (s as Record<string, unknown>).fee_amount as string | null ?? null,
+          subject:         s.subject,
+          templateSubject,
+          templateBody,
+          fromName,
+          fromEmail,
+          settings,
+        })
+        await transport.sendMail({
+          from:    `"${fromName}" <${fromEmail}>`,
+          to:      s.parent_email!,
+          subject: emailSubject,
+          html,
+          text,
+        })
       })
-
-      await transport.sendMail({
-        from:    `"${fromName}" <${fromEmail}>`,
-        to:      s.parent_email!,
-        subject: emailSubject,
-        html,
-        text,
-      })
-
-      return s.parent_email
+    )
+    sent += batchResults.filter(r => r.status === 'fulfilled').length
+    batchResults.forEach((r, j) => {
+      if (r.status === 'rejected')
+        errors.push({ email: batch[j]?.parent_email ?? null, reason: (r as PromiseRejectedResult).reason?.message ?? 'Unknown error' })
     })
-  )
+  }
 
-  const sent   = results.filter(r => r.status === 'fulfilled').length
-  const errors = results
-    .filter(r => r.status === 'rejected')
-    .map((r, i) => ({ email: students[i]?.parent_email, reason: (r as PromiseRejectedResult).reason?.message ?? 'Unknown error' }))
+  if (sent === 0 && errors.length > 0) {
+    return NextResponse.json({ error: `All sends failed: ${errors[0].reason}`, errors }, { status: 500 })
+  }
 
   return NextResponse.json({ sent, skipped: students.length - sent, errors })
 }

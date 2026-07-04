@@ -91,6 +91,7 @@ export type TrialStudent = {
   trial_date: string
   parent_name: string | null
   parent_contact: string | null
+  parent_email: string | null
   notes: string | null
   outcome: 'pending' | 'converting' | 'dropped'
   follow_up: boolean

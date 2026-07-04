@@ -13,6 +13,7 @@ import { HRPaymentsTab } from './HRPaymentsTab'
 import { ParentsTab } from './ParentsTab'
 import { BranchesTab } from './BranchesTab'
 import { ParentAnnouncementsTab } from './ParentAnnouncementsTab'
+import { SettingsTab } from './SettingsTab'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
 import type { Teacher, ScheduleEvent, Subject, Announcement } from '@/types'
@@ -118,7 +119,8 @@ export function HRView({
 
       {tab === 'parents' && <ParentsTab />}
 
-      {tab === 'branches' && <BranchesTab branches={branches} />}
+      {tab === 'branches'  && <BranchesTab branches={branches} />}
+      {tab === 'settings'  && <SettingsTab />}
     </div>
   )
 }

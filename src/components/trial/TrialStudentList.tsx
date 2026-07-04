@@ -72,6 +72,7 @@ function EnrollModal({
       module_total: CURRICULUM[trial.tier]?.length ?? 1,
       enrolled_date: new Date().toISOString().split('T')[0],
       parent_contact: trial.parent_contact,
+      parent_email: trial.parent_email ?? null,
       notes: trial.notes,
       fee_status: 'unpaid',
     }).select().single()

@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, ChevronDown, ChevronUp, UserPlus, X } from 'lucide-react'
+import { Loader2, ChevronDown, ChevronUp, UserPlus, GraduationCap, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Teacher } from '@/types'
-import { SUBJECT_META } from '@/types'
+import { SUBJECT_META, SUBJECTS, TIERS } from '@/types'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
 
@@ -95,6 +95,8 @@ function StatusBadge({ status }: { status: Submission['status'] }) {
   return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
 }
 
+type ConvertMode = 'trial' | 'student'
+
 function ConvertDialog({ sub, teachers, onClose, onDone }: {
   sub: Submission; teachers: Teacher[]; onClose: () => void; onDone: () => void
 }) {
@@ -106,33 +108,77 @@ function ConvertDialog({ sub, teachers, onClose, onDone }: {
   )) as string[]
   const subjectOptions = relevantSubjects.length > 0 ? relevantSubjects : ['coding', 'english', 'maths', 'chinese']
 
-  const [teacherId, setTeacherId] = useState(teachers[0]?.id ?? '')
-  const [subject, setSubject] = useState(subjectOptions[0] ?? 'coding')
-  const [trialDate, setTrialDate] = useState(new Date().toISOString().split('T')[0])
-  const [notes, setNotes] = useState(sub.focus_area ?? '')
-  const [saving, setSaving] = useState(false)
+  const [mode,         setMode]         = useState<ConvertMode>('trial')
+  const [teacherId,    setTeacherId]    = useState(teachers[0]?.id ?? '')
+  const [subject,      setSubject]      = useState(subjectOptions[0] ?? 'coding')
+  const [trialDate,    setTrialDate]    = useState(new Date().toISOString().split('T')[0])
+  const [tier,         setTier]         = useState('')
+  const [branch,       setBranch]       = useState('')
+  const [enrolledDate, setEnrolledDate] = useState(new Date().toISOString().split('T')[0])
+  const [age,          setAge]          = useState(String(sub.student_age ?? ''))
+  const [notes,        setNotes]        = useState(sub.focus_area ?? '')
+  const [branches,     setBranches]     = useState<string[]>([])
+  const [saving,       setSaving]       = useState(false)
+
+  const isCoding = subject === 'coding'
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('branches').select('name').eq('active', true).order('name').then(({ data }) => {
+      const names = data?.map(r => r.name) ?? []
+      const list = names.length ? names : ['Mont Kiara']
+      setBranches(list)
+      setBranch(list[0])
+    })
+  }, [])
 
   async function confirm() {
-    if (!teacherId || !subject || !trialDate) { toast.error('请填写所有字段 / Fill all fields'); return }
-    setSaving(true)
-    const res = await fetch('/api/convert-submission', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ submission_id: sub.id, teacher_id: teacherId, subject, trial_date: trialDate, notes }),
-    })
-    const json = await res.json()
-    setSaving(false)
-    if (!res.ok) { toast.error(json.error ?? '转换失败 / Failed to convert'); return }
-    toast.success(`${sub.student_name} 已添加为试课学生 / added as a trial student`)
-    onDone()
+    if (!teacherId || !subject) { toast.error('Fill all required fields'); return }
+
+    if (mode === 'trial') {
+      if (!trialDate) { toast.error('Trial date is required'); return }
+      setSaving(true)
+      const res = await fetch('/api/convert-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: sub.id, teacher_id: teacherId, subject, trial_date: trialDate, notes, mode: 'trial' }),
+      })
+      const json = await res.json()
+      setSaving(false)
+      if (!res.ok) { toast.error(json.error ?? 'Failed to convert'); return }
+      toast.success(`${sub.student_name} added as a trial student`)
+      onDone()
+    } else {
+      if (isCoding && !tier) { toast.error('Select a class tier'); return }
+      if (!branch) { toast.error('Select a branch'); return }
+      if (!enrolledDate) { toast.error('Enrolled date is required'); return }
+      const ageNum = Number(age)
+      if (!age || isNaN(ageNum) || ageNum < 1) { toast.error('Enter a valid age'); return }
+      setSaving(true)
+      const res = await fetch('/api/convert-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: sub.id, teacher_id: teacherId, subject,
+          tier, branch, enrolled_date: enrolledDate, age: ageNum, notes, mode: 'student',
+        }),
+      })
+      const json = await res.json()
+      setSaving(false)
+      if (!res.ok) { toast.error(json.error ?? 'Failed to convert'); return }
+      toast.success(`${sub.student_name} enrolled as a student`)
+      onDone()
+    }
   }
+
+  const sel = 'w-full h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:border-gray-400'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">{t.hr_submissions.convert_title}</h3>
+            <h3 className="text-sm font-bold text-gray-900">Convert Submission</h3>
             <p className="text-xs text-gray-400 mt-0.5">{sub.student_name}</p>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
@@ -140,55 +186,132 @@ function ConvertDialog({ sub, teachers, onClose, onDone }: {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Pre-filled info */}
-          <div className="bg-gray-50 rounded-xl p-3 space-y-1 text-xs text-gray-600">
-            {sub.student_age && <p><span className="font-semibold">{t.hr_submissions.col_age}:</span> {sub.student_age}</p>}
-            {sub.age_group && <p><span className="font-semibold">{t.hr_submissions.age_group_label}:</span> {sub.age_group}</p>}
-            {sub.parent_name && <p><span className="font-semibold">{t.hr_submissions.detail_parent}:</span> {sub.parent_name}</p>}
-            {sub.contact && <p><span className="font-semibold">{t.hr_submissions.col_contact}:</span> {sub.contact}</p>}
-          </div>
+        <div className="overflow-y-auto flex-1">
+          <div className="p-5 space-y-4">
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.assign_teacher}</label>
-            <select value={teacherId} onChange={e => setTeacherId(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:border-gray-400">
-              {teachers.filter(teacher => teacher.active !== false).map(teacher => (
-                <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
-              ))}
-            </select>
-          </div>
+            {/* Mode toggle */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+              <button
+                onClick={() => setMode('trial')}
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
+                style={mode === 'trial'
+                  ? { background: 'white', color: '#1E8449', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
+                  : { background: 'transparent', color: '#9CA3AF' }}
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Trial Student
+              </button>
+              <button
+                onClick={() => setMode('student')}
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
+                style={mode === 'student'
+                  ? { background: 'white', color: '#1A5276', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
+                  : { background: 'transparent', color: '#9CA3AF' }}
+              >
+                <GraduationCap className="w-3.5 h-3.5" /> Enrolled Student
+              </button>
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.subject}</label>
-            <select value={subject} onChange={e => setSubject(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:border-gray-400">
-              {subjectOptions.map(s => (
-                <option key={s} value={s}>{SUBJECT_META[s as keyof typeof SUBJECT_META]?.label ?? s}</option>
-              ))}
-            </select>
-          </div>
+            {/* Pre-filled info */}
+            <div className="bg-gray-50 rounded-xl p-3 space-y-1 text-xs text-gray-600">
+              {sub.student_age && <p><span className="font-semibold">{t.hr_submissions.col_age}:</span> {sub.student_age}</p>}
+              {sub.age_group && <p><span className="font-semibold">{t.hr_submissions.age_group_label}:</span> {sub.age_group}</p>}
+              {sub.parent_name && <p><span className="font-semibold">{t.hr_submissions.detail_parent}:</span> {sub.parent_name}</p>}
+              {sub.contact && <p><span className="font-semibold">{t.hr_submissions.col_contact}:</span> {sub.contact}</p>}
+              {sub.email && <p><span className="font-semibold">Email:</span> {sub.email}</p>}
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.trial_date}</label>
-            <input type="date" value={trialDate} onChange={e => setTrialDate(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:border-gray-400" />
-          </div>
+            {/* Teacher */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.assign_teacher}</label>
+              <select value={teacherId} onChange={e => setTeacherId(e.target.value)} className={sel}>
+                {teachers.filter(tc => tc.active !== false).map(tc => (
+                  <option key={tc.id} value={tc.id}>{tc.name}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.notes_optional}</label>
-            <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder={t.hr_submissions.notes_placeholder}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:border-gray-400 resize-none" />
+            {/* Subject */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.subject}</label>
+              {mode === 'trial' ? (
+                <select value={subject} onChange={e => setSubject(e.target.value)} className={sel}>
+                  {subjectOptions.map(s => (
+                    <option key={s} value={s}>{SUBJECT_META[s as keyof typeof SUBJECT_META]?.label ?? s}</option>
+                  ))}
+                </select>
+              ) : (
+                <select value={subject} onChange={e => { setSubject(e.target.value); setTier('') }} className={sel}>
+                  {SUBJECTS.map(s => (
+                    <option key={s} value={s}>{SUBJECT_META[s].label}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* ── Trial-only fields ── */}
+            {mode === 'trial' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.trial_date}</label>
+                <input type="date" value={trialDate} onChange={e => setTrialDate(e.target.value)} className={sel} />
+              </div>
+            )}
+
+            {/* ── Student-only fields ── */}
+            {mode === 'student' && (
+              <>
+                {isCoding && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-600">Class Tier</label>
+                    <select value={tier} onChange={e => setTier(e.target.value)} className={sel}>
+                      <option value="">Select tier…</option>
+                      {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-600">Age</label>
+                    <input
+                      type="number" min={1} max={99} value={age}
+                      onChange={e => setAge(e.target.value)}
+                      placeholder={sub.student_age ? String(sub.student_age) : 'e.g. 10'}
+                      className={sel}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-600">Enrolled Date</label>
+                    <input type="date" value={enrolledDate} onChange={e => setEnrolledDate(e.target.value)} className={sel} />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-600">Branch</label>
+                  <select value={branch} onChange={e => setBranch(e.target.value)} className={sel}>
+                    {branches.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-600">{t.hr_submissions.notes_optional}</label>
+              <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder={t.hr_submissions.notes_placeholder}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:border-gray-400 resize-none" />
+            </div>
           </div>
         </div>
 
-        <div className="px-5 pb-5 flex gap-2">
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
           <button onClick={confirm} disabled={saving}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
-            style={{ background: '#1E8449' }}>
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
-            {t.hr_submissions.confirm}
+            style={{ background: mode === 'trial' ? '#1E8449' : '#1A5276' }}>
+            {saving
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : mode === 'trial' ? <UserPlus className="w-3.5 h-3.5" /> : <GraduationCap className="w-3.5 h-3.5" />}
+            {mode === 'trial' ? 'Add Trial Student' : 'Enrol Student'}
           </button>
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
             {t.hr_submissions.cancel}
