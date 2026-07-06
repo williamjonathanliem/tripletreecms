@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, FileDown, RotateCcw, GraduationCap, BookOpen, Sparkles, Plus, X, ChevronDown, History, Clock } from 'lucide-react'
+import { Loader2, FileDown, RotateCcw, GraduationCap, BookOpen, Sparkles, Plus, X, ChevronDown, History, Clock, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import type { BootcampType, FeeType, PaymentStatus, ConfirmationMode } from '@/lib/pdf/bootcamp-confirmation'
+import { DatePickerField } from '@/components/ui/date-picker'
+import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select'
 
 type HistoryRow = {
   id: string
@@ -68,8 +70,22 @@ const TIME_SLOTS = [
   '3:00 PM – 5:30 PM',
 ]
 
-function genConfirmationNumber() {
-  return `TT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+async function genConfirmationNumber(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const year = new Date().getFullYear()
+  const { data } = await supabase
+    .from('confirmation_history')
+    .select('confirmation_number')
+    .like('confirmation_number', `TT-${year}-%`)
+
+  let maxNum = 0
+  for (const row of data ?? []) {
+    if (!row.confirmation_number) continue
+    const parts = (row.confirmation_number as string).split('-')
+    const n = parseInt(parts[parts.length - 1], 10)
+    if (!isNaN(n) && n > maxNum) maxNum = n
+  }
+
+  return `TT-${year}-${String(maxNum + 1).padStart(5, '0')}`
 }
 
 function addWorkingDays(startDate: string, days: number): string {
@@ -113,7 +129,7 @@ const UI_T = {
     contact:        'Contact Number',
     email:          'Email',
     start_date:     'Start Date *',
-    end_date:       'End Date (auto)',
+    end_date:       'End Date',
     end_date_opt:   'End Date (optional)',
     class_schedule: 'Class Schedule',
     venue:          'Venue (optional)',
@@ -167,7 +183,7 @@ const UI_T = {
     contact:        '联系电话',
     email:          '电子邮件',
     start_date:     '开始日期 *',
-    end_date:       '结束日期（自动）',
+    end_date:       '结束日期',
     end_date_opt:   '结束日期（可选）',
     class_schedule: '上课时间表',
     venue:          '上课地点（可选）',
@@ -316,14 +332,17 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
 
   async function loadHistory() {
     setHistoryLoading(true)
-    const { data } = await supabase
+    setHistoryError(null)
+    const { data, error } = await supabase
       .from('confirmation_history')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50)
+    if (error) setHistoryError(error.message)
     setHistory(data ?? [])
     setHistoryLoading(false)
   }
@@ -373,10 +392,15 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
   const [customTerms, setCustomTerms] = useState<string[]>([])
   const [newTerm, setNewTerm] = useState('')
 
+  // ── Bootcamp end date (auto-calculated, user can override) ──
+  const [bcEndDateCustom, setBcEndDateCustom] = useState('')
+  useEffect(() => {
+    setBcEndDateCustom(startDate ? addWorkingDays(startDate, 9) : '')
+  }, [startDate])
+
   // ── Bootcamp derived values ──
   const bcCfg = BOOTCAMPS[bootcamp]
   const bcFeeAmount = feeType === 'early_bird' ? bcCfg.earlyBird : bcCfg.standard
-  const bcEndDate = startDate ? addWorkingDays(startDate, 9) : ''
   const bcEffectiveTime = classTime === 'custom' ? customTime : classTime
 
   // ── Class derived values ──
@@ -416,7 +440,7 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
         email: email.trim(),
         payment_status: paymentStatus,
         amount_paid: amountPaid,
-        confirmation_number: genConfirmationNumber(),
+        confirmation_number: await genConfirmationNumber(supabase),
         issue_date: new Date().toISOString().split('T')[0],
         issued_by: issuedBy.trim() || 'Triple Tree Staff',
         lang,
@@ -429,7 +453,7 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
           age_group: ageGroup,
           fee_type: feeType,
           start_date: startDate,
-          end_date: bcEndDate,
+          end_date: bcEndDateCustom,
           class_time: bcEffectiveTime,
           amount_paid: amountPaid || String(paymentStatus === 'paid' ? bcFeeAmount : 0),
         }
@@ -558,11 +582,21 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-50 flex items-center gap-2">
             <History className="w-4 h-4 text-gray-400" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirmation History</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex-1">Confirmation History</p>
+            <button type="button" onClick={loadHistory} disabled={historyLoading}
+              className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40">
+              <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           {historyLoading ? (
             <div className="flex items-center justify-center py-10 gap-2 text-gray-400 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+            </div>
+          ) : historyError ? (
+            <div className="py-8 text-center space-y-2">
+              <p className="text-sm text-red-500">Could not load history</p>
+              <p className="text-xs text-gray-400 max-w-xs mx-auto">{historyError}</p>
+              <button type="button" onClick={loadHistory} className="text-xs text-blue-500 hover:underline mt-1">Try again</button>
             </div>
           ) : history.length === 0 ? (
             <div className="py-10 text-center text-sm text-gray-400">No confirmations generated yet.</div>
@@ -575,7 +609,10 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{h.student_name}</p>
-                    <p className="text-xs text-gray-400 truncate">{h.program_name ?? MODE_LABELS[h.mode]} · {h.confirmation_number}</p>
+                    <p className="text-xs text-gray-500 truncate">{h.program_name ?? MODE_LABELS[h.mode]}</p>
+                    {h.confirmation_number && (
+                      <p className="text-[11px] font-mono text-gray-400 mt-0.5">{h.confirmation_number}</p>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     {h.payment_status && (
@@ -676,17 +713,24 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
         <Section title={t.program_details}>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label={t.start_date}>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={inputCls} />
+              <DatePickerField value={startDate} onChange={setStartDate} placeholder="Pick start date" />
             </Field>
-            <Field label={t.end_date}>
-              <input type="date" value={bcEndDate} readOnly className={`${inputCls} bg-gray-50 text-gray-400 cursor-not-allowed`} />
+            <Field label={t.end_date} hint="Auto-filled from start date, can be overridden">
+              <DatePickerField value={bcEndDateCustom} onChange={setBcEndDateCustom} placeholder="Pick end date" />
             </Field>
             <div className="sm:col-span-2">
               <Field label="Class Time">
-                <select value={classTime} onChange={e => setClassTime(e.target.value)} className={inputCls}>
-                  {TIME_SLOTS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
-                  <option value="custom">{lang === 'zh' ? '自定义…' : 'Custom…'}</option>
-                </select>
+                <Select value={classTime} onValueChange={v => setClassTime(v ?? TIME_SLOTS[2])}>
+                  <SelectTrigger className={`${inputCls} flex items-center`}>
+                    <span className="flex flex-1 text-sm text-left">
+                      {classTime === 'custom' ? (lang === 'zh' ? '自定义…' : 'Custom…') : classTime}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_SLOTS.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
+                    <SelectItem value="custom">{lang === 'zh' ? '自定义…' : 'Custom…'}</SelectItem>
+                  </SelectContent>
+                </Select>
                 {classTime === 'custom' && (
                   <input type="text" placeholder={t.custom_ph} value={customTime}
                     onChange={e => setCustomTime(e.target.value)} className={`${inputCls} mt-2`} />
@@ -762,10 +806,10 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
         <Section title={t.program_details}>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label={t.start_date}>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={inputCls} />
+              <DatePickerField value={startDate} onChange={setStartDate} placeholder="Pick start date" />
             </Field>
             <Field label={t.end_date_opt}>
-              <input type="date" value={classEndDate} onChange={e => setClassEndDate(e.target.value)} className={inputCls} />
+              <DatePickerField value={classEndDate} onChange={setClassEndDate} placeholder="Pick end date" />
             </Field>
             <div className="sm:col-span-2">
               <Field label={t.class_schedule}>
@@ -848,10 +892,10 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
         <Section title={t.program_details}>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label={lang === 'zh' ? '工作坊日期 *' : 'Workshop Date *'}>
-              <input type="date" value={workshopDate} onChange={e => setWorkshopDate(e.target.value)} className={inputCls} />
+              <DatePickerField value={workshopDate} onChange={setWorkshopDate} placeholder="Pick workshop date" />
             </Field>
             <Field label={lang === 'zh' ? '结束日期（可选）' : 'End Date (optional)'}>
-              <input type="date" value={workshopEndDate} onChange={e => setWorkshopEndDate(e.target.value)} className={inputCls} />
+              <DatePickerField value={workshopEndDate} onChange={setWorkshopEndDate} placeholder="Pick end date" />
             </Field>
             <Field label={lang === 'zh' ? '时间' : 'Time'}>
               <input type="text" placeholder="9:00 AM – 12:00 PM" value={workshopTime}
