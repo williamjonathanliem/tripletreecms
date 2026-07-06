@@ -558,6 +558,43 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
     setWorkshopFee(''); setWorkshopFeeLabel(''); setCustomTerms([])
   }
 
+  function fillFromHistory(h: HistoryRow) {
+    handleReset()
+    setMode(h.mode as ConfirmationMode)
+    setStudentName(h.student_name)
+    if (h.issued_by) setIssuedBy(h.issued_by)
+    if (h.payment_status) setPaymentStatus(h.payment_status as PaymentStatus)
+
+    if (h.mode === 'bootcamp') {
+      if (h.start_date) setStartDate(h.start_date)
+      if (h.program_name) {
+        const bcKey = (Object.keys(BOOTCAMPS) as BootcampType[]).find(k =>
+          BOOTCAMPS[k].label_en === h.program_name || BOOTCAMPS[k].label_zh === h.program_name
+        )
+        if (bcKey) { setBootcamp(bcKey); setAgeGroup(BOOTCAMPS[bcKey].ageGroups[0]) }
+      }
+    } else if (h.mode === 'class') {
+      if (h.start_date) setStartDate(h.start_date)
+      if (h.program_name) {
+        const [subjectRaw, ...tierParts] = h.program_name.split(' – ')
+        const matched = CLASS_SUBJECTS.find(s =>
+          s.value === subjectRaw || s.label_en === subjectRaw || s.label_zh === subjectRaw
+        )
+        if (matched) setClassSubject(matched.value)
+        else { setClassSubject('custom'); setCustomSubjectName(subjectRaw) }
+        const tierStr = tierParts.join(' – ')
+        if (tierStr) setClassTier(tierStr)
+      }
+    } else if (h.mode === 'workshop') {
+      if (h.start_date) setWorkshopDate(h.start_date)
+      if (h.program_name) setWorkshopName(h.program_name)
+    }
+
+    setShowHistory(false)
+    toast.success('Form pre-filled — update as needed')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const MODE_LABELS: Record<string, string> = { bootcamp: 'Bootcamp', class: 'Regular Class', workshop: 'Workshop' }
   const STATUS_COLORS: Record<string, string> = { paid: '#1E8449', deposit: '#B7770D', pending: '#6B7280' }
 
@@ -603,7 +640,8 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
           ) : (
             <div className="divide-y divide-gray-50">
               {history.map(h => (
-                <div key={h.id} className="px-5 py-3.5 flex items-center gap-4">
+                <div key={h.id} onClick={() => fillFromHistory(h)}
+                  className="px-5 py-3.5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors group">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gray-50">
                     {h.mode === 'bootcamp' ? <GraduationCap className="w-4 h-4 text-[#1A5276]" /> : h.mode === 'class' ? <BookOpen className="w-4 h-4 text-[#1E8449]" /> : <Sparkles className="w-4 h-4 text-[#7D3C98]" />}
                   </div>
@@ -623,6 +661,9 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
                     <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1 justify-end">
                       <Clock className="w-3 h-3" />
                       {new Date(h.created_at).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                    <p className="text-[10px] text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
+                      Click to pre-fill
                     </p>
                   </div>
                 </div>
