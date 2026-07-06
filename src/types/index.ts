@@ -51,6 +51,7 @@ export type Student = {
   module_current: number
   module_total: number
   enrolled_date: string
+  parent_name: string | null
   parent_contact: string | null
   parent_email: string | null
   notes: string | null

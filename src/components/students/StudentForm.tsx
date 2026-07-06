@@ -36,6 +36,7 @@ export function StudentForm({ student, onClose }: Props) {
   const [tier,          setTier]          = useState(student?.tier ?? '')
   const [branch,        setBranch]        = useState(student?.branch ?? '')
   const [enrolledDate,  setEnrolledDate]  = useState(student?.enrolled_date ?? new Date().toISOString().split('T')[0])
+  const [parentName,    setParentName]    = useState(student?.parent_name ?? '')
   const [parentContact, setParentContact] = useState(student?.parent_contact ?? '')
   const [parentEmail,   setParentEmail]   = useState(student?.parent_email ?? '')
   const [notes,         setNotes]         = useState(student?.notes ?? '')
@@ -115,7 +116,8 @@ export function StudentForm({ student, onClose }: Props) {
 
     const payload = {
       name: name.trim(), age: ageNum, subject, tier: resolvedTier, branch: branch.trim(),
-      enrolled_date: enrolledDate, parent_contact: parentContact || null,
+      enrolled_date: enrolledDate, parent_name: parentName.trim() || null,
+      parent_contact: parentContact || null,
       parent_email: parentEmail.trim().toLowerCase() || null,
       notes: notes || null, teacher_id, module_total,
       module_current: isEditing ? student.module_current : 0,
@@ -281,6 +283,15 @@ export function StudentForm({ student, onClose }: Props) {
         {/* ── Parent info ───────────────────────────────────────────────── */}
         <div>
           <SectionLabel>Parent / Guardian</SectionLabel>
+          <div className="space-y-3">
+            <div>
+              <label className="text-[11px] text-gray-400 mb-1.5 block">Parent Name</label>
+              <input
+                placeholder="e.g. Puan Siti"
+                className={inp()}
+                value={parentName} onChange={e => setParentName(e.target.value)}
+              />
+            </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-gray-400 mb-1.5 block">Contact Number</label>
@@ -298,6 +309,7 @@ export function StudentForm({ student, onClose }: Props) {
                 value={parentEmail} onChange={e => setParentEmail(e.target.value)}
               />
             </div>
+          </div>
           </div>
         </div>
 

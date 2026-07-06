@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Student Registration — Triple Tree Enrichment Centre',
-  description: 'Register your child for Coding, Chinese, English, Maths, Science, Arts or Calligraphy classes',
+  title: 'Student Enquiry — Triple Tree Enrichment Centre',
+  description: 'Register or Enquire about your child for Coding, Chinese, English, Maths, Science, Arts or Calligraphy classes',
   manifest: '/form-manifest.json',
   appleWebApp: {
     capable: true,

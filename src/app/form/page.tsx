@@ -27,7 +27,7 @@ const EMPTY: FormData = {
 
 const T = {
   en: {
-    subtitle: 'Student Registration',
+    subtitle: 'Student Enquiry',
     s_student: 'Student Information', s_parent: 'Parent / Guardian',
     s_subjects: 'Interested Subjects', s_skills: 'Skills & Enrichment',
     s_levels: 'Current Level', s_additional: 'Additional Information',

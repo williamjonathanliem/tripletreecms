@@ -17,10 +17,12 @@ const inputClass = 'w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-5
 
 interface Props {
   classId: string
-  defaultTime?: string   // schedule_time from the class group
+  defaultTime?: string
+  subject?: string
+  classTitle?: string
 }
 
-export function LogSessionDialog({ classId, defaultTime }: Props) {
+export function LogSessionDialog({ classId, defaultTime, subject, classTitle }: Props) {
   const { lang } = useCmsLang()
   const t = CMS_T[lang]
 
@@ -51,6 +53,28 @@ export function LogSessionDialog({ classId, defaultTime }: Props) {
       .single()
 
     if (error || !session) { toast.error('Failed to start session'); return }
+
+    // Mirror to calendar so the session appears as a scheduled event
+    if (subject) {
+      const [sh, sm] = data.session_time.split(':').map(Number)
+      const endTotal = sh * 60 + sm + 90
+      const endTime = `${String(Math.floor(endTotal / 60)).padStart(2, '0')}:${String(endTotal % 60).padStart(2, '0')}`
+      await supabase.from('schedule_events').insert({
+        class_id: classId,
+        teacher_id: user.id,
+        subject,
+        title: classTitle ?? 'Class Session',
+        event_date: data.session_date,
+        start_time: data.session_time,
+        end_time: endTime,
+        event_type: 'class',
+        description: data.notes || null,
+        colour: null,
+        meeting_link: null,
+        created_by: user.id,
+      })
+    }
+
     toast.success('Session started')
     setOpen(false)
     reset()

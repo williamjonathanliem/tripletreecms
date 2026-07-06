@@ -112,12 +112,13 @@ export function StudentTable({ students }: { students: Student[] }) {
       header: t.students.col_progress,
       cell: ({ row }) => {
         const s = row.original
-        const pct = s.module_total > 0 ? (s.module_current / s.module_total) * 100 : 0
+        const total = (s as Student & { is_bootcamp?: boolean }).is_bootcamp ? 10 : s.module_total
+        const pct = total > 0 ? (s.module_current / total) * 100 : 0
         const color = TIER_COLORS[s.tier] || SUBJECT_META[s.subject]?.color || '#6B7280'
         return (
           <div className="min-w-[90px]">
             <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>{s.module_current}/{s.module_total}</span>
+              <span>{s.module_current}/{total} classes</span>
               <span>{Math.round(pct)}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
@@ -232,7 +233,8 @@ export function StudentTable({ students }: { students: Student[] }) {
           table.getRowModel().rows.map(row => {
             const s = row.original
             const color = TIER_COLORS[s.tier] || SUBJECT_META[s.subject]?.color || '#6B7280'
-            const pct = s.module_total > 0 ? (s.module_current / s.module_total) * 100 : 0
+            const mobileTotal = (s as Student & { is_bootcamp?: boolean }).is_bootcamp ? 10 : s.module_total
+            const pct = mobileTotal > 0 ? (s.module_current / mobileTotal) * 100 : 0
             const meta = SUBJECT_META[s.subject]
             const feeCfg: Record<string, { label: string; color: string; bg: string }> = {
               paid:    { label: t.students.fee_paid,    color: '#1E8449', bg: '#EAFAF1' },
@@ -266,7 +268,7 @@ export function StudentTable({ students }: { students: Student[] }) {
                 </div>
                 <div>
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>{s.module_current}/{s.module_total} modules</span>
+                    <span>{s.module_current}/{(s as Student & { is_bootcamp?: boolean }).is_bootcamp ? 10 : s.module_total} classes</span>
                     <span>{Math.round(pct)}%</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">

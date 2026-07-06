@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Loader2, Trash2, Video } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { ChevronLeft, ChevronRight, Plus, Loader2, Trash2, Video, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { SUBJECTS, SUBJECT_META, type Subject, type ScheduleEvent } from '@/types'
+import { CURRICULUM_DATA } from '@/lib/curriculumData'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -88,18 +89,45 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
   const [meetingLink, setMeetingLink] = useState(event?.meeting_link ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [branches, setBranches] = useState<string[]>([])
+  const [newClassBranch, setNewClassBranch] = useState('')
+  const [newClassTier, setNewClassTier] = useState('')
   const supabase = createClient()
 
   const filteredTeachers = teachers.filter(t => t.subjects?.includes(subject))
   const filteredClasses = classes.filter(c => c.subject === subject)
+  const showCreateClass = eventType === 'class' && !classId
+
+  // Fetch branches once on open
+  useEffect(() => {
+    supabase.from('branches').select('name').eq('active', true).order('name')
+      .then(({ data }) => setBranches((data ?? []).map(b => b.name)))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     if (!title.trim()) { toast.error('Title is required'); return }
     setSaving(true)
+
+    // If this is a new class-type event with no linked class and a branch is chosen,
+    // create the classes record first so it appears on the Classes page
+    let resolvedClassId = classId || null
+    if (showCreateClass && newClassBranch && !event) {
+      const { data: newClass, error: classErr } = await supabase.from('classes').insert({
+        tier: newClassTier || title.trim(),
+        branch: newClassBranch,
+        subject,
+        schedule_day: null,
+        schedule_time: startTime,
+        teacher_id: teacherId || null,
+      }).select('id').single()
+      if (classErr) { toast.error(`Failed to create class: ${classErr.message}`); setSaving(false); return }
+      resolvedClassId = newClass.id
+    }
+
     const payload = {
       title: title.trim(), subject,
       teacher_id: teacherId || null,
-      class_id: classId || null,
+      class_id: resolvedClassId,
       event_date: date,
       start_time: startTime,
       end_time: endTime,
@@ -116,6 +144,18 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
       const { data, error } = await supabase.from('schedule_events').insert(payload).select().single()
       if (error) { toast.error('Failed to create'); setSaving(false); return }
       result = data as ScheduleEvent
+
+      // Mirror to class_sessions so it shows up on the Classes page attendance log
+      if (eventType === 'class' && resolvedClassId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        await supabase.from('class_sessions').insert({
+          class_id: resolvedClassId,
+          teacher_id: teacherId || user?.id || null,
+          session_date: date,
+          session_time: startTime,
+          notes: description || null,
+        })
+      }
     }
     setSaving(false)
     toast.success(event ? 'Event updated' : 'Event created')
@@ -223,7 +263,11 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
               onValueChange={v => setTeacherId(v === '__none__' ? '' : (v ?? ''))}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t.unassigned} />
+                <span className="text-sm">
+                  {teacherId
+                    ? (filteredTeachers.find(tc => tc.id === teacherId)?.name ?? teachers.find(tc => tc.id === teacherId)?.name ?? t.unassigned)
+                    : t.unassigned}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">{t.unassigned}</SelectItem>
@@ -258,6 +302,39 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
               </SelectContent>
             </Select>
           </div>
+
+          {/* Auto-create class entry when type=class and no existing class linked */}
+          {showCreateClass && !event && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 space-y-3">
+              <p className="text-xs font-semibold text-blue-700">Also add to Classes page</p>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Branch</Label>
+                <Select value={newClassBranch || '__none__'} onValueChange={v => setNewClassBranch(v === '__none__' ? '' : (v ?? ''))}>
+                  <SelectTrigger className="h-9 text-sm bg-white">
+                    <span className="text-sm">{newClassBranch || <span className="text-gray-400">Select branch…</span>}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None (skip) —</SelectItem>
+                    {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {newClassBranch && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tier <span className="text-gray-400 font-normal">(optional)</span></Label>
+                  <Select value={newClassTier || '__none__'} onValueChange={v => setNewClassTier(v === '__none__' ? '' : (v ?? ''))}>
+                    <SelectTrigger className="h-9 text-sm bg-white">
+                      <span className="text-sm">{newClassTier || <span className="text-gray-400">Select tier…</span>}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Use event title —</SelectItem>
+                      {CURRICULUM_DATA.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1.5">
@@ -403,6 +480,7 @@ interface CalendarProps {
 export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, subjectFilter, showHeader }: CalendarProps) {
   const { lang } = useCmsLang()
   const t = CMS_T[lang].schedule
+  const supabase = createClient()
 
   const [view, setView] = useState<'day' | 'week'>('week')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -410,6 +488,19 @@ export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, su
   const [activeSubjects, setActiveSubjects] = useState<Subject[]>(subjectFilter ?? SUBJECTS)
   const [modal, setModal] = useState<{ open: boolean; event?: ScheduleEvent | null; date?: string; time?: string }>({ open: false })
   const [teacherFilter, setTeacherFilter] = useState<string>('')
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    const { data } = await supabase
+      .from('schedule_events')
+      .select('*')
+      .order('event_date')
+      .order('start_time')
+    if (data) setEvents(data as ScheduleEvent[])
+    setRefreshing(false)
+    toast.success('Calendar refreshed')
+  }
 
   const weekStart = startOfWeek(currentDate)
   const days = view === 'week'
@@ -485,6 +576,15 @@ export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, su
             </button>
           ))}
         </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 disabled:opacity-40"
+          title="Refresh calendar"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
 
         {canEdit && (
           <Button

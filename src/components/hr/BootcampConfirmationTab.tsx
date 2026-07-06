@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, FileDown, RotateCcw, GraduationCap, BookOpen, Sparkles, Plus, X, ChevronDown, History, Clock, RefreshCw } from 'lucide-react'
+import { Loader2, FileDown, RotateCcw, GraduationCap, BookOpen, Sparkles, Plus, X, ChevronDown, History, Clock, RefreshCw, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import type { BootcampType, FeeType, PaymentStatus, ConfirmationMode } from '@/lib/pdf/bootcamp-confirmation'
 import { DatePickerField } from '@/components/ui/date-picker'
 import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select'
+import { CURRICULUM_DATA } from '@/lib/curriculumData'
 
 type HistoryRow = {
   id: string
@@ -98,6 +99,24 @@ function addWorkingDays(startDate: string, days: number): string {
     if (dow !== 0 && dow !== 6) added++
   }
   return d.toISOString().split('T')[0]
+}
+
+function parseTimeRange(timeStr: string): { start: string; end: string } | null {
+  const parts = timeStr.split('–').map(s => s.trim())
+  if (parts.length !== 2) return null
+  function to24(t: string) {
+    const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+    if (!m) return null
+    let h = parseInt(m[1])
+    const min = m[2]
+    if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12
+    if (m[3].toUpperCase() === 'AM' && h === 12) h = 0
+    return `${String(h).padStart(2, '0')}:${min}`
+  }
+  const start = to24(parts[0])
+  const end = to24(parts[1])
+  if (!start || !end) return null
+  return { start, end }
 }
 
 // ── UI strings ─────────────────────────────────────────────────────────────
@@ -321,9 +340,11 @@ function FeePreview({
 interface Props {
   currentUserName?: string
   subjects?: string[]
+  branches?: string[]
+  tiers?: string[]
 }
 
-export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
+export function BootcampConfirmationTab({ currentUserName, subjects, branches = [], tiers = [] }: Props) {
   const { lang } = useCmsLang()
   const t = UI_T[lang]
   const supabase = createClient()
@@ -360,6 +381,13 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
   const [amountPaid, setAmountPaid] = useState('')
   const [issuedBy, setIssuedBy] = useState(currentUserName ?? '')
   const [generating, setGenerating] = useState(false)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [modalBranch, setModalBranch] = useState('')
+  const [modalTier, setModalTier] = useState('')
+  const [modalAlsoCalendar, setModalAlsoCalendar] = useState(true)
+  const [modalTierCustom, setModalTierCustom] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [savedAsStudent, setSavedAsStudent] = useState(false)
 
   // ── Bootcamp ──
   const availableBootcamps = getAvailableBootcamps(subjects)
@@ -519,6 +547,34 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
       URL.revokeObjectURL(url)
       toast.success(t.ok)
 
+      // Auto-add to calendar
+      const calEventDate = mode === 'workshop' ? workshopDate : startDate
+      if (calEventDate) {
+        const calTimeStr = mode === 'bootcamp' ? bcEffectiveTime : mode === 'class' ? classSchedule : workshopTime
+        const calTimes = parseTimeRange(calTimeStr)
+        const calSubject = getDerivedSubject()
+        const calTitle = mode === 'bootcamp'
+          ? `${lang === 'zh' ? BOOTCAMPS[bootcamp].label_zh : BOOTCAMPS[bootcamp].label_en} – ${studentName.trim()}`
+          : mode === 'class'
+          ? `${classSubject === 'custom' ? customSubjectName : classSubject}${classTier ? ` – ${classTier}` : ''} – ${studentName.trim()}`
+          : `${workshopName} – ${studentName.trim()}`
+        const calColour = mode === 'bootcamp' ? BOOTCAMPS[bootcamp].color : mode === 'class' ? classColor : workshopColor
+        await supabase.from('schedule_events').insert({
+          subject: calSubject,
+          title: calTitle,
+          description: `Confirmation #${payload.confirmation_number}`,
+          event_date: calEventDate,
+          start_time: calTimes?.start ?? '09:00',
+          end_time: calTimes?.end ?? '11:00',
+          event_type: mode === 'workshop' ? 'other' : 'class',
+          colour: calColour,
+          class_id: null,
+          teacher_id: null,
+          meeting_link: null,
+          created_by: null,
+        })
+      }
+
       // Save to history
       const { data: { user } } = await supabase.auth.getUser()
       const programLabel = mode === 'bootcamp'
@@ -544,7 +600,113 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
     }
   }
 
+  function getDerivedSubject(): string {
+    if (mode === 'bootcamp') return bootcamp === 'math' ? 'maths' : bootcamp
+    if (mode === 'class') return classSubject === 'custom' ? 'coding' : classSubject
+    return 'coding'
+  }
+
+  function handleSaveAsStudent() {
+    if (!studentName.trim()) { toast.error(t.err_name); return }
+    setModalTier(mode === 'class' ? classTier : '')
+    setShowSaveModal(true)
+  }
+
+  async function confirmSaveAsStudent() {
+    if (!modalBranch.trim()) { toast.error('Branch is required'); return }
+    setSaving(true)
+    try {
+      const subject = getDerivedSubject()
+      const feeStatusMap: Record<PaymentStatus, 'paid' | 'partial' | 'unpaid'> = {
+        paid: 'paid', deposit: 'partial', pending: 'unpaid',
+      }
+      const eventDate = mode === 'workshop' ? workshopDate : startDate
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const resolvedTier = modalTier === '__custom__'
+        ? modalTierCustom.trim()
+        : modalTier.trim() || (mode === 'bootcamp' ? 'Bootcamp' : 'Standard')
+
+      const classTierValue = resolvedTier || (mode === 'bootcamp' ? 'Bootcamp' : 'Standard')
+      const timeStr = mode === 'bootcamp' ? bcEffectiveTime : mode === 'class' ? classSchedule : workshopTime
+      const times = parseTimeRange(timeStr)
+
+      // 1. Insert student
+      const { data: newStudent, error: studentError } = await supabase.from('students').insert({
+        name: studentName.trim(),
+        age: parseInt(studentAge) || 0,
+        tier: classTierValue,
+        branch: modalBranch.trim(),
+        subject,
+        module_current: 0,
+        module_total: mode === 'bootcamp' ? 10 : parseInt(months || '1') * 4,
+        enrolled_date: eventDate || new Date().toISOString().split('T')[0],
+        parent_name: parentName.trim() || null,
+        parent_contact: contact.trim() || null,
+        parent_email: email.trim() || null,
+        fee_status: feeStatusMap[paymentStatus],
+        is_bootcamp: mode === 'bootcamp',
+        bootcamp_start_date: mode === 'bootcamp' ? startDate || null : null,
+        bootcamp_end_date: mode === 'bootcamp' ? bcEndDateCustom || null : null,
+        bootcamp_time: mode === 'bootcamp' ? bcEffectiveTime || null : null,
+        teacher_id: null,
+      }).select('id').single()
+      if (studentError) throw studentError
+
+      // 2. Create class record so it appears on the Classes page
+      const programLabel = mode === 'bootcamp'
+        ? (lang === 'zh' ? BOOTCAMPS[bootcamp].label_zh : BOOTCAMPS[bootcamp].label_en)
+        : mode === 'class'
+        ? `${classSubject === 'custom' ? customSubjectName : classSubject}`
+        : workshopName
+      const { data: newClass, error: classError } = await supabase.from('classes').insert({
+        tier: classTierValue,
+        branch: modalBranch.trim(),
+        subject,
+        schedule_day: null,
+        schedule_time: times?.start ?? null,
+        teacher_id: null,
+      }).select('id').single()
+      if (classError) throw classError
+
+      // 3. Enrol student into class
+      const { error: enrollError } = await supabase.from('class_students').insert({
+        class_id: newClass.id,
+        student_id: newStudent.id,
+      })
+      if (enrollError) throw enrollError
+
+      // 4. Add to calendar linked to the new class
+      if (modalAlsoCalendar && eventDate) {
+        await supabase.from('schedule_events').insert({
+          subject,
+          title: `${programLabel} – ${studentName.trim()}`,
+          description: null,
+          event_date: eventDate,
+          start_time: times?.start ?? '09:00',
+          end_time: times?.end ?? '11:00',
+          event_type: mode === 'workshop' ? 'other' : 'class',
+          colour: mode === 'bootcamp' ? BOOTCAMPS[bootcamp].color : classColor,
+          class_id: newClass.id,
+          teacher_id: null,
+          meeting_link: null,
+          created_by: user?.id ?? null,
+        })
+      }
+
+      toast.success(`${studentName.trim()} saved as student!`)
+      setShowSaveModal(false)
+      setModalBranch('')
+      setSavedAsStudent(true)
+    } catch (err: unknown) {
+      toast.error(`Save failed: ${(err as Error).message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function handleReset() {
+    setSavedAsStudent(false)
     setStudentName(''); setStudentAge(''); setParentName('')
     setContact(''); setEmail(''); setStartDate('')
     setPaymentStatus('paid'); setAmountPaid('')
@@ -562,7 +724,7 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
     handleReset()
     setMode(h.mode as ConfirmationMode)
     setStudentName(h.student_name)
-    if (h.issued_by) setIssuedBy(h.issued_by)
+    // intentionally NOT overwriting issuedBy — the current staff member stays
     if (h.payment_status) setPaymentStatus(h.payment_status as PaymentStatus)
 
     if (h.mode === 'bootcamp') {
@@ -829,10 +991,6 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
                   onChange={e => setCustomSubjectName(e.target.value)} className={inputCls} />
               </Field>
             )}
-            <Field label={t.tier_level}>
-              <input type="text" placeholder={lang === 'zh' ? '例：A1 / 初级 / Junior' : 'e.g. A1 / Beginner / Junior'} value={classTier}
-                onChange={e => setClassTier(e.target.value)} className={inputCls} />
-            </Field>
           </div>
         </Section>
 
@@ -990,12 +1148,18 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
       </Section>
 
       {/* ── Actions ── */}
-      <div className="flex gap-3 pb-4">
+      <div className="flex gap-3 pb-4 flex-wrap">
         <button onClick={handleGenerate} disabled={generating}
           className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-opacity hover:opacity-90"
           style={{ background: '#1E8449' }}>
           {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
           {generating ? t.generating : t.generate}
+        </button>
+        <button type="button" onClick={handleSaveAsStudent} disabled={savedAsStudent}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-70"
+          style={{ background: savedAsStudent ? '#1E8449' : '#1A5276' }}>
+          <UserPlus className="w-4 h-4" />
+          {savedAsStudent ? 'Saved to System ✓' : 'Save as Class & Student'}
         </button>
         <button onClick={handleReset} type="button"
           className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
@@ -1003,6 +1167,140 @@ export function BootcampConfirmationTab({ currentUserName, subjects }: Props) {
           {t.reset}
         </button>
       </div>
+
+      {/* ── Save as Student modal ── */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowSaveModal(false) }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-[#1A5276]" />
+                <p className="font-bold text-gray-900">Save as Class &amp; Student</p>
+              </div>
+              <button type="button" onClick={() => setShowSaveModal(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto">
+              {/* Will be saved */}
+              <div className="bg-green-50 rounded-xl p-4 space-y-1.5">
+                <p className="text-[10px] font-bold text-green-700 uppercase tracking-wide mb-2">Will be saved</p>
+                {[
+                  { label: 'Name',    value: studentName },
+                  { label: 'Age',     value: studentAge || '—' },
+                  { label: 'Parent',  value: parentName || '—' },
+                  { label: 'Contact', value: contact || '—' },
+                  { label: 'Email',   value: email || '—' },
+                  { label: 'Subject', value: getDerivedSubject() },
+                  { label: 'Date',    value: (mode === 'workshop' ? workshopDate : startDate) || '—' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex gap-2 text-sm">
+                    <span className="text-green-600 w-16 shrink-0 font-medium text-xs">{label}</span>
+                    <span className="text-gray-700 text-xs">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Required */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Required</p>
+                <Field label="Branch *">
+                  {branches.length > 0 ? (
+                    <Select value={modalBranch} onValueChange={v => setModalBranch(v ?? '')}>
+                      <SelectTrigger className={`${inputCls} flex items-center`}>
+                        <span className="flex flex-1 text-sm text-left">
+                          {modalBranch || <span className="text-gray-400">Select branch…</span>}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <input type="text" placeholder="e.g. Mont Kiara, Bangsar" value={modalBranch}
+                      onChange={e => setModalBranch(e.target.value)} className={inputCls} autoFocus />
+                  )}
+                </Field>
+              </div>
+
+              {/* Optional */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Optional</p>
+
+                {/* Tier — coding only */}
+                {getDerivedSubject() === 'coding' && (() => {
+                  const allTiers = [...new Set([...CURRICULUM_DATA.map(t => t.name), ...tiers])]
+                  return (
+                    <Field label="Tier / Level">
+                      <Select value={modalTier} onValueChange={v => { setModalTier(v ?? ''); setModalTierCustom('') }}>
+                        <SelectTrigger className={`${inputCls} flex items-center`}>
+                          <span className="flex flex-1 text-sm text-left">
+                            {modalTier === '__custom__' ? (modalTierCustom || 'Custom…') : modalTier || <span className="text-gray-400">Select tier…</span>}
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">— None —</SelectItem>
+                          {allTiers.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          <SelectItem value="__custom__">Custom…</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {modalTier === '__custom__' && (
+                        <input type="text" placeholder="e.g. Python Beginner" value={modalTierCustom}
+                          onChange={e => setModalTierCustom(e.target.value)}
+                          className={`${inputCls} mt-2`} autoFocus />
+                      )}
+                    </Field>
+                  )
+                })()}
+
+              </div>
+
+              {/* Calendar option */}
+              <button
+                type="button"
+                onClick={() => setModalAlsoCalendar(v => !v)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left"
+                style={modalAlsoCalendar
+                  ? { borderColor: '#1A5276', background: '#EBF5FB' }
+                  : { borderColor: '#E5E7EB', background: 'white' }}
+              >
+                <div
+                  className="w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors"
+                  style={modalAlsoCalendar
+                    ? { background: '#1A5276', borderColor: '#1A5276' }
+                    : { background: 'white', borderColor: '#D1D5DB' }}
+                >
+                  {modalAlsoCalendar && (
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: modalAlsoCalendar ? '#1A5276' : '#374151' }}>Also add to calendar</p>
+                  <p className="text-xs text-gray-400">Creates a schedule event for the start date</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+              <button type="button" onClick={() => setShowSaveModal(false)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={confirmSaveAsStudent} disabled={saving}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-opacity hover:opacity-90"
+                style={{ background: '#1A5276' }}>
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {saving ? 'Saving…' : 'Save Student'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

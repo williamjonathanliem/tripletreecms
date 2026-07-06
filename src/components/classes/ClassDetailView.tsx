@@ -172,7 +172,12 @@ export function ClassDetailView({ cls, roster, sessions, attendanceCounts }: Pro
     <div className="space-y-4">
       {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
-        <LogSessionDialog classId={cls.id} defaultTime={cls.schedule_time ?? undefined} />
+        <LogSessionDialog
+          classId={cls.id}
+          defaultTime={cls.schedule_time ?? undefined}
+          subject={cls.subject ?? undefined}
+          classTitle={[cls.tier, cls.branch].filter(Boolean).join(' · ')}
+        />
         <EditClassDialog cls={cls} compact />
       </div>
 

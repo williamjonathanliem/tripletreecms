@@ -111,7 +111,13 @@ export function HRView({
 
       {tab === 'submissions' && <FormSubmissionsTab teachers={teachers} />}
 
-      {tab === 'confirmation' && <BootcampConfirmationTab currentUserName={currentUserName} />}
+      {tab === 'confirmation' && (
+        <BootcampConfirmationTab
+          currentUserName={currentUserName}
+          branches={branches.filter(b => b.active).map(b => b.name)}
+          tiers={[...new Set(classes.map(c => c.tier).filter(Boolean))].sort()}
+        />
+      )}
 
       {tab === 'payments' && (
         <HRPaymentsTab students={hrStudents} hrName={currentUserName ?? 'HR'} />

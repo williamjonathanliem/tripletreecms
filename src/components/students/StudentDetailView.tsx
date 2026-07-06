@@ -185,17 +185,22 @@ export function StudentDetailView({
               {(student.module_current as number) + 1} / {modules.length || (student.module_total as number) || '—'}
             </p>
           </div>
-          {!!(student.parent_contact) && (
+          {!!(student.parent_contact || student.parent_name) && (
             <div className="px-5 py-3.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
                 <Phone className="w-3.5 h-3.5" /> {sd.parent_contact}
               </div>
+              {!!(student.parent_name) && (
+                <p className="text-xs text-gray-500 mb-1">{student.parent_name as string}</p>
+              )}
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-semibold text-gray-800">{student.parent_contact as string}</p>
-                <a href={toWhatsApp(student.parent_contact as string)} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
-                  <MessageCircle className="w-3 h-3" /> {sd.whatsapp}
-                </a>
+                {!!(student.parent_contact) && <>
+                  <p className="text-sm font-semibold text-gray-800">{student.parent_contact as string}</p>
+                  <a href={toWhatsApp(student.parent_contact as string)} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
+                    <MessageCircle className="w-3 h-3" /> {sd.whatsapp}
+                  </a>
+                </>}
               </div>
             </div>
           )}
