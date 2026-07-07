@@ -1232,7 +1232,7 @@ export function BootcampConfirmationTab({ currentUserName, subjects, branches = 
 
                 {/* Tier — coding only */}
                 {getDerivedSubject() === 'coding' && (() => {
-                  const allTiers = [...new Set([...CURRICULUM_DATA.map(t => t.name), ...tiers])]
+                  const allTiers = Array.from(new Set([...CURRICULUM_DATA.map(t => t.name), ...tiers]))
                   return (
                     <Field label="Tier / Level">
                       <Select value={modalTier} onValueChange={v => { setModalTier(v ?? ''); setModalTierCustom('') }}>

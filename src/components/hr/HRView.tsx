@@ -116,7 +116,7 @@ export function HRView({
         <BootcampConfirmationTab
           currentUserName={currentUserName}
           branches={branches.filter(b => b.active).map(b => b.name)}
-          tiers={[...new Set(classes.map(c => c.tier).filter(Boolean))].sort()}
+          tiers={Array.from(new Set(classes.map(c => c.tier).filter(Boolean))).sort()}
         />
       )}
 
