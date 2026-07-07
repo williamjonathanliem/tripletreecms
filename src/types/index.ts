@@ -33,7 +33,7 @@ export type ScheduleEvent = {
   event_date: string
   start_time: string
   end_time: string
-  event_type: 'class' | 'trial' | 'makeup' | 'exam' | 'holiday' | 'other'
+  event_type: 'class' | 'trial' | 'makeup' | 'exam' | 'holiday' | 'other' | 'summer_camp'
   colour: string | null
   meeting_link: string | null
   created_by: string | null

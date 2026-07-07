@@ -92,6 +92,7 @@ export function HRView({
           teachers={teachersForCalendar}
           classes={classes}
           canEdit={true}
+          isHR={true}
         />
       )}
 

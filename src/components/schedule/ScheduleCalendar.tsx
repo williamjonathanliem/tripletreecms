@@ -62,28 +62,39 @@ interface ModalProps {
   onClose: () => void
   onSaved: (e: ScheduleEvent) => void
   onDeleted?: (id: string) => void
+  currentUserId?: string
+  isHR?: boolean
 }
 
-function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClose, onSaved, onDeleted }: ModalProps) {
+function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClose, onSaved, onDeleted, currentUserId, isHR }: ModalProps) {
   const { lang } = useCmsLang()
   const t = CMS_T[lang].schedule
 
   const EVENT_TYPES = [
-    { value: 'class',   label: t.type_class },
-    { value: 'trial',   label: t.type_trial },
-    { value: 'makeup',  label: t.type_makeup },
-    { value: 'exam',    label: t.type_exam },
-    { value: 'holiday', label: t.type_holiday },
-    { value: 'other',   label: t.type_other },
+    { value: 'class',       label: t.type_class },
+    { value: 'summer_camp', label: t.type_summer_camp },
+    { value: 'trial',       label: t.type_trial },
+    { value: 'makeup',      label: t.type_makeup },
+    { value: 'exam',        label: t.type_exam },
+    { value: 'holiday',     label: t.type_holiday },
+    { value: 'other',       label: t.type_other },
   ]
 
   const [title, setTitle] = useState(event?.title ?? '')
   const [subject, setSubject] = useState<Subject>(event?.subject ?? 'coding')
-  const [teacherId, setTeacherId] = useState<string>(event?.teacher_id ?? '')
+  // Pre-fill teacher for non-HR users creating a new event
+  const [teacherId, setTeacherId] = useState<string>(event?.teacher_id ?? (!isHR && !event ? (currentUserId ?? '') : ''))
   const [classId, setClassId] = useState<string>(event?.class_id ?? '')
   const [date, setDate] = useState(event?.event_date ?? prefillDate ?? isoDate(new Date()))
   const [startTime, setStartTime] = useState(event?.start_time?.slice(0, 5) ?? prefillTime ?? '09:00')
-  const [endTime, setEndTime] = useState(event?.end_time?.slice(0, 5) ?? '10:00')
+  const [endTime, setEndTime] = useState(() => {
+    if (event?.end_time) return event.end_time.slice(0, 5)
+    // Default to 1 hour after start
+    const base = prefillTime ?? '09:00'
+    const [h, m] = base.split(':').map(Number)
+    const total = h * 60 + m + 60
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  })
   const [eventType, setEventType] = useState<ScheduleEvent['event_type']>(event?.event_type ?? 'class')
   const [description, setDescription] = useState(event?.description ?? '')
   const [meetingLink, setMeetingLink] = useState(event?.meeting_link ?? '')
@@ -97,6 +108,11 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
   const filteredTeachers = teachers.filter(t => t.subjects?.includes(subject))
   const filteredClasses = classes.filter(c => c.subject === subject)
   const showCreateClass = eventType === 'class' && !classId
+
+  // Teachers can only edit events they own; HR can edit anything
+  const canEditThis = !event || isHR ||
+    event.teacher_id === currentUserId ||
+    event.created_by === currentUserId
 
   // Fetch branches once on open
   useEffect(() => {
@@ -134,6 +150,7 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
       event_type: eventType,
       description: description || null,
       meeting_link: meetingLink.trim() || null,
+      created_by: currentUserId ?? null,
     }
     let result: ScheduleEvent | null = null
     if (event) {
@@ -148,13 +165,15 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
       // Mirror to class_sessions so it shows up on the Classes page attendance log
       if (eventType === 'class' && resolvedClassId) {
         const { data: { user } } = await supabase.auth.getUser()
-        await supabase.from('class_sessions').insert({
-          class_id: resolvedClassId,
-          teacher_id: teacherId || user?.id || null,
-          session_date: date,
-          session_time: startTime,
-          notes: description || null,
-        })
+        if (user) {
+          await supabase.from('class_sessions').insert({
+            class_id: resolvedClassId,
+            teacher_id: user.id,
+            session_date: date,
+            session_time: startTime,
+            notes: description || null,
+          })
+        }
       }
     }
     setSaving(false)
@@ -227,7 +246,9 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
               <Label>{t.type_label}</Label>
               <Select value={eventType} onValueChange={v => setEventType(v as ScheduleEvent['event_type'])}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <span className="text-sm">
+                    {EVENT_TYPES.find(et => et.value === eventType)?.label ?? eventType}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {EVENT_TYPES.map(({ value, label }) => (
@@ -242,7 +263,16 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>{t.start_time}</Label>
-              <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+              <Input type="time" value={startTime} onChange={e => {
+                const newStart = e.target.value
+                setStartTime(newStart)
+                // If end is at or before start, auto-set end to start + 1h
+                if (newStart >= endTime) {
+                  const [h, m] = newStart.split(':').map(Number)
+                  const total = h * 60 + m + 60
+                  setEndTime(`${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`)
+                }
+              }} />
             </div>
             <div className="space-y-1.5">
               <Label>{t.end_time}</Label>
@@ -292,7 +322,14 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
               onValueChange={v => setClassId(v === '__none__' ? '' : (v ?? ''))}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t.none} />
+                <span className="text-sm truncate">
+                  {classId
+                    ? (() => {
+                        const c = classes.find(c => c.id === classId)
+                        return c ? `${c.tier} · ${c.branch}` : t.none
+                      })()
+                    : t.none}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">{t.none}</SelectItem>
@@ -370,18 +407,27 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
           <div className="flex gap-2">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              style={{ background: '#1A5276' }}
-              className="text-white hover:opacity-90"
-            >
-              {saving && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-              {event ? t.update_btn : t.create_btn}
-            </Button>
-            <Button variant="outline" onClick={onClose}>{t.cancel}</Button>
+            {canEditThis ? (
+              <>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{ background: '#1A5276' }}
+                  className="text-white hover:opacity-90"
+                >
+                  {saving && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+                  {event ? t.update_btn : t.create_btn}
+                </Button>
+                <Button variant="outline" onClick={onClose}>{t.cancel}</Button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-gray-400 italic">View only — assigned to another teacher</p>
+                <Button variant="outline" onClick={onClose}>{t.cancel}</Button>
+              </>
+            )}
           </div>
-          {event && (
+          {event && canEditThis && (
             <Button
               variant="ghost"
               size="sm"
@@ -401,11 +447,32 @@ function EventModal({ event, prefillDate, prefillTime, teachers, classes, onClos
   )
 }
 
+// ── Heal a time string stored in 12-hour format when it should be PM ──
+function healEndTime(startTime: string, endTime: string): string {
+  if (!endTime) return endTime
+  // If end < start by more than 1 minute, try adding 12 hours (12-hour format bug)
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  const startMins = sh * 60 + sm
+  const endMins   = eh * 60 + em
+  if (endMins < startMins) {
+    const fixed = endMins + 12 * 60
+    // Only apply if the fixed time is after start and within a reasonable session (≤ 8h)
+    if (fixed > startMins && fixed - startMins <= 8 * 60) {
+      const fh = Math.floor(fixed / 60) % 24
+      const fm = fixed % 60
+      return `${String(fh).padStart(2, '0')}:${String(fm).padStart(2, '0')}`
+    }
+  }
+  return endTime
+}
+
 // ── Event Block ────────────────────────────────────────────────────
 function EventBlock({ event, onClick }: { event: ScheduleEvent; onClick: () => void }) {
   const meta = SUBJECT_META[event.subject]
   const top = timeToY(event.start_time)
-  const height = Math.max(timeToY(event.end_time) - top, 22)
+  const displayEnd = event.end_time ? healEndTime(event.start_time, event.end_time) : null
+  const height = displayEnd ? Math.max(timeToY(displayEnd) - top, 22) : HOUR_PX
   return (
     <button
       onClick={onClick}
@@ -424,7 +491,7 @@ function EventBlock({ event, onClick }: { event: ScheduleEvent; onClick: () => v
       </div>
       {height > 32 && (
         <p className="text-[10px] leading-snug truncate" style={{ color: meta?.color, opacity: 0.65 }}>
-          {event.start_time.slice(0, 5)} – {event.end_time.slice(0, 5)}
+          {event.start_time.slice(0, 5)} – {(displayEnd ?? event.end_time ?? '').slice(0, 5)}
         </p>
       )}
     </button>
@@ -473,11 +540,13 @@ interface CalendarProps {
   teachers: { id: string; name: string; subjects: Subject[] }[]
   classes: { id: string; tier: string; branch: string; subject: Subject }[]
   canEdit: boolean
+  currentUserId?: string
+  isHR?: boolean
   subjectFilter?: Subject[]
   showHeader?: boolean
 }
 
-export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, subjectFilter, showHeader }: CalendarProps) {
+export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, currentUserId, isHR, subjectFilter, showHeader }: CalendarProps) {
   const { lang } = useCmsLang()
   const t = CMS_T[lang].schedule
   const supabase = createClient()
@@ -621,7 +690,9 @@ export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, su
           <div className="ml-auto">
             <Select value={teacherFilter || '__all__'} onValueChange={v => setTeacherFilter(v === '__all__' ? '' : (v ?? ''))}>
               <SelectTrigger className="h-8 text-xs w-40">
-                <SelectValue placeholder={t.all_teachers} />
+                <span className="text-xs truncate">
+                  {teacherFilter ? (teachers.find(tc => tc.id === teacherFilter)?.name ?? t.all_teachers) : t.all_teachers}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">{t.all_teachers}</SelectItem>
@@ -695,6 +766,8 @@ export function ScheduleCalendar({ initialEvents, teachers, classes, canEdit, su
           prefillTime={modal.time}
           teachers={teachers}
           classes={classes}
+          currentUserId={currentUserId}
+          isHR={isHR}
           onClose={() => setModal({ open: false })}
           onSaved={saved => setEvents(prev => {
             const idx = prev.findIndex(e => e.id === saved.id)

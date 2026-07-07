@@ -430,6 +430,7 @@ export const CMS_T = {
       type_makeup: 'Makeup',
       type_exam: 'Exam',
       type_holiday: 'Holiday',
+      type_summer_camp: 'Summer Camp',
       type_other: 'Other',
     },
     curriculum: {
@@ -1139,6 +1140,7 @@ export const CMS_T = {
       type_makeup: '补课',
       type_exam: '考试',
       type_holiday: '假期',
+      type_summer_camp: '夏令营',
       type_other: '其他',
     },
     curriculum: {

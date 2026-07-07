@@ -23,7 +23,9 @@ export default async function SchedulePage() {
         initialEvents={(events ?? []) as Parameters<typeof ScheduleCalendar>[0]['initialEvents']}
         teachers={(teachers ?? []) as { id: string; name: string; subjects: Subject[] }[]}
         classes={(classes ?? []) as { id: string; tier: string; branch: string; subject: Subject }[]}
-        canEdit={ctx.role === 'hr'}
+        canEdit={true}
+        currentUserId={ctx.id}
+        isHR={ctx.role === 'hr'}
         subjectFilter={ctx.role === 'hr' ? undefined : ctx.subjects}
       />
     </div>
