@@ -39,9 +39,12 @@ export function StudentForm({ student, onClose }: Props) {
   const [parentName,    setParentName]    = useState(student?.parent_name ?? '')
   const [parentContact, setParentContact] = useState(student?.parent_contact ?? '')
   const [parentEmail,   setParentEmail]   = useState(student?.parent_email ?? '')
-  const [notes,         setNotes]         = useState(student?.notes ?? '')
-  const [submitting,    setSubmitting]    = useState(false)
-  const [errors,        setErrors]        = useState<Record<string, string>>({})
+  const [notes,          setNotes]          = useState(student?.notes ?? '')
+  const [moduleCurrent,  setModuleCurrent]  = useState(student ? String(student.module_current) : '0')
+  const [moduleTotal,    setModuleTotal]    = useState(student ? String(student.module_total) : '')
+  const [submitting,     setSubmitting]     = useState(false)
+  const [errors,         setErrors]         = useState<Record<string, string>>({})
+  const [moduleTotalLocked, setModuleTotalLocked] = useState(true)
 
   const [isHR,            setIsHR]            = useState(false)
   const [teachers,        setTeachers]        = useState<{ id: string; name: string }[]>([])
@@ -111,16 +114,23 @@ export function StudentForm({ student, onClose }: Props) {
     if (!user) { setSubmitting(false); return }
 
     const resolvedTier = isCoding ? tier : subjectMeta.label
-    const module_total = isCoding ? (CURRICULUM[resolvedTier]?.length ?? 7) : 1
     const teacher_id   = isHR && assignedTeacher ? assignedTeacher : user.id
+
+    const resolvedModuleTotal = (isHR && !moduleTotalLocked)
+      ? (parseInt(moduleTotal) || 1)
+      : (isEditing ? student.module_total : (isCoding ? (CURRICULUM[resolvedTier]?.length ?? 7) : 1))
+    const resolvedModuleCurrent = isHR
+      ? Math.min(parseInt(moduleCurrent) || 0, resolvedModuleTotal)
+      : (isEditing ? student.module_current : 0)
 
     const payload = {
       name: name.trim(), age: ageNum, subject, tier: resolvedTier, branch: branch.trim(),
       enrolled_date: enrolledDate, parent_name: parentName.trim() || null,
       parent_contact: parentContact || null,
       parent_email: parentEmail.trim().toLowerCase() || null,
-      notes: notes || null, teacher_id, module_total,
-      module_current: isEditing ? student.module_current : 0,
+      notes: notes || null, teacher_id,
+      module_total: resolvedModuleTotal,
+      module_current: resolvedModuleCurrent,
     }
 
     if (isEditing) {
@@ -312,6 +322,49 @@ export function StudentForm({ student, onClose }: Props) {
           </div>
           </div>
         </div>
+
+        {/* ── Attendance override (HR only) ─────────────────────────────── */}
+        {isHR && (
+          <div>
+            <SectionLabel>Attendance</SectionLabel>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1.5 block">Classes attended</label>
+                <input
+                  type="number" min={0} max={999}
+                  placeholder="0"
+                  className={inp()}
+                  value={moduleCurrent}
+                  onChange={e => setModuleCurrent(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1.5 flex items-center gap-1.5">
+                  Total classes
+                  <button
+                    type="button"
+                    onClick={() => setModuleTotalLocked(v => !v)}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold transition-colors ${
+                      moduleTotalLocked
+                        ? 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                    }`}
+                  >
+                    {moduleTotalLocked ? 'auto' : 'manual'}
+                  </button>
+                </label>
+                <input
+                  type="number" min={1} max={999}
+                  placeholder="auto"
+                  disabled={moduleTotalLocked}
+                  className={inp() + (moduleTotalLocked ? ' opacity-50 cursor-not-allowed' : '')}
+                  value={moduleTotalLocked ? (isEditing ? student.module_total : '') : moduleTotal}
+                  onChange={e => setModuleTotal(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Notes ─────────────────────────────────────────────────────── */}
         <div>

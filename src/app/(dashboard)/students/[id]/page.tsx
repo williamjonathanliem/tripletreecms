@@ -32,6 +32,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     .order('created_at', { ascending: false })
     .limit(20)
 
+  const { data: dailyAttendance } = await supabase
+    .from('student_attendance')
+    .select('*')
+    .eq('student_id', student.id)
+
   const modules = CURRICULUM[student.tier] ?? []
   const subject = student.subject as Subject
 
@@ -40,6 +45,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       student={student as Record<string, unknown>}
       teacher={teacher ?? null}
       attendanceRecords={(attendanceRecords ?? []) as Parameters<typeof StudentDetailView>[0]['attendanceRecords']}
+      dailyAttendance={(dailyAttendance ?? []) as { id: string; date: string; status: string }[]}
       modules={modules}
       subject={subject}
       isHR={ctx.role === 'hr'}

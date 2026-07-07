@@ -4,9 +4,9 @@ import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
 import { EditStudentDialog } from '@/components/students/EditStudentDialog'
 import { FeeStatusCard } from '@/components/students/FeeStatusCard'
-import { ModuleProgressCard } from '@/components/students/ModuleProgressCard'
+import { AttendanceCard } from '@/components/students/AttendanceCard'
 import { TIER_COLORS, SUBJECT_META, type Subject, type Student } from '@/types'
-import { Phone, Calendar, StickyNote, ChevronLeft, ClipboardList, MessageCircle, BookOpen, Send, FileDown } from 'lucide-react'
+import { Phone, Calendar, StickyNote, ChevronLeft, MessageCircle, ClipboardList, Send, FileDown } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -20,20 +20,16 @@ type AttendanceRecord = {
   session: { session_date?: string; session_time?: string } | null
 }
 
+type DailyAttendance = { id: string; date: string; status: string }
+
 type StudentDetailViewProps = {
   student: Record<string, unknown>
   teacher: { name: string } | null
   attendanceRecords: AttendanceRecord[]
+  dailyAttendance: DailyAttendance[]
   modules: string[]
   subject: Subject
   isHR: boolean
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  present: 'bg-green-50 text-green-700 border border-green-200',
-  absent:  'bg-red-50 text-red-700 border border-red-200',
-  late:    'bg-amber-50 text-amber-700 border border-amber-200',
-  excused: 'bg-blue-50 text-blue-700 border border-blue-200',
 }
 
 function getInitials(name: string) {
@@ -47,7 +43,7 @@ function formatDate(d: string) {
 }
 
 export function StudentDetailView({
-  student, teacher, attendanceRecords, modules, subject, isHR,
+  student, teacher, attendanceRecords, dailyAttendance, modules, subject, isHR,
 }: StudentDetailViewProps) {
   const { lang } = useCmsLang()
   const sd = CMS_T[lang].student_detail
@@ -109,10 +105,6 @@ export function StudentDetailView({
   const branch = student.branch as string
   const color = TIER_COLORS[tier] || SUBJECT_META[subject]?.color || '#6B7280'
 
-  const done = attendanceRecords.filter(r => r.status === 'present' || r.status === 'late').length
-  const total = attendanceRecords.length
-  const attendancePct = total > 0 ? Math.round((done / total) * 100) : null
-
   function toWhatsApp(phone: string) {
     const digits = phone.replace(/\D/g, '')
     const intl = digits.startsWith('60') ? digits : `60${digits.replace(/^0/, '')}`
@@ -149,9 +141,9 @@ export function StudentDetailView({
                 )}
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full text-white"
                   style={{ backgroundColor: color }}>{branch}</span>
-                {attendancePct !== null && (
+                {!!(student.module_total as number) && (
                   <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {attendancePct}{sd.attendance_badge}
+                    {student.module_current as number}/{student.module_total as number} classes
                   </span>
                 )}
               </div>
@@ -179,10 +171,10 @@ export function StudentDetailView({
           </div>
           <div className="px-5 py-3.5">
             <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
-              <BookOpen className="w-3.5 h-3.5" /> {sd.module}
+              <ClipboardList className="w-3.5 h-3.5" /> Attendance
             </div>
             <p className="text-sm font-semibold text-gray-800">
-              {(student.module_current as number) + 1} / {modules.length || (student.module_total as number) || '—'}
+              {student.module_current as number} / {(student.module_total as number) || '—'}
             </p>
           </div>
           {!!(student.parent_contact || student.parent_name) && (
@@ -273,56 +265,16 @@ export function StudentDetailView({
         </div>
       )}
 
-      {/* Curriculum Progress */}
-      <ModuleProgressCard
+      {/* Attendance */}
+      <AttendanceCard
         studentId={student.id as string}
-        studentName={name}
-        tier={tier}
-        subject={subject}
         moduleCurrent={student.module_current as number}
         moduleTotal={student.module_total as number}
-        modules={modules}
+        attendanceRecords={attendanceRecords}
+        dailyAttendance={dailyAttendance}
+        isHR={isHR}
+        color={color}
       />
-
-      {/* Attendance History */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
-          <ClipboardList className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-bold text-gray-900">{sd.attendance_section}</h2>
-          {total > 0 && (
-            <span className="ml-auto text-xs text-gray-400">{done}/{total} {sd.sessions_attended}</span>
-          )}
-        </div>
-        <div className="px-6 py-4">
-          {attendanceRecords.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">{sd.no_attendance}</p>
-          ) : (
-            <div className="space-y-2">
-              {attendanceRecords.map(record => (
-                <div key={record.id}
-                  className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {record.class?.tier}
-                      {record.class?.branch && <span className="text-gray-400 font-normal"> · {record.class.branch}</span>}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {record.session?.session_date}
-                      {record.session?.session_time && <> · {record.session.session_time.slice(0, 5)}</>}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className={`inline-block text-xs font-semibold capitalize px-2.5 py-0.5 rounded-full ${STATUS_STYLES[record.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                      {record.status}
-                    </span>
-                    {record.note && <p className="text-xs text-gray-400 mt-0.5">{record.note}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
     </div>
   )
