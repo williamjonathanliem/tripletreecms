@@ -268,7 +268,7 @@ export function StudentDetailView({
       {/* Attendance */}
       <AttendanceCard
         studentId={student.id as string}
-        moduleCurrent={student.module_current as number}
+
         moduleTotal={student.module_total as number}
         attendanceRecords={attendanceRecords}
         dailyAttendance={dailyAttendance}

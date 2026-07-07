@@ -37,7 +37,6 @@ type AttendanceRecord = {
 
 interface Props {
   studentId: string
-  moduleCurrent: number
   moduleTotal: number
   attendanceRecords: AttendanceRecord[]
   dailyAttendance: DayRecord[]
@@ -46,7 +45,7 @@ interface Props {
 }
 
 export function AttendanceCard({
-  studentId, moduleCurrent, moduleTotal, attendanceRecords, dailyAttendance, isHR, color,
+  studentId, moduleTotal, attendanceRecords, dailyAttendance, isHR, color,
 }: Props) {
   const now = new Date()
   const [viewYear,  setViewYear]  = useState(now.getFullYear())
@@ -144,15 +143,6 @@ export function AttendanceCard({
   }
 
   const DOT = 22
-
-  // Session-based records keyed by date for the history section
-  const sessionsByDate = useMemo(() => {
-    const m: Record<string, AttendanceRecord> = {}
-    attendanceRecords.forEach(r => {
-      if (r.session?.session_date) m[r.session.session_date] = r
-    })
-    return m
-  }, [attendanceRecords])
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
