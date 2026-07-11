@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, CreditCard, Download, Search, ChevronDown, ChevronUp, AlertCircle, TrendingUp, MessageCircle, Mail, X, CheckCircle2, UserPlus, History } from 'lucide-react'
