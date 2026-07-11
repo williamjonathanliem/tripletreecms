@@ -1,13 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, CreditCard, Download, Search, ChevronDown, ChevronUp, AlertCircle, TrendingUp, MessageCircle, Mail, X, CheckCircle2, UserPlus } from 'lucide-react'
+import { Loader2, CreditCard, Download, Search, ChevronDown, ChevronUp, AlertCircle, TrendingUp, MessageCircle, Mail, X, CheckCircle2, UserPlus, History } from 'lucide-react'
 import { downloadReceipt } from '@/components/students/FeeReceiptPDF'
 import type { Subject } from '@/types'
 import { useCmsLang } from '@/lib/context/cms-lang-context'
 import { CMS_T } from '@/lib/i18n/cms'
+
+type PaymentReceipt = {
+  id: string
+  receipt_no: string
+  amount: number | null
+  fee_status: string
+  payment_method: string | null
+  service_period: string | null
+  note: string | null
+  issued_by: string | null
+  issued_date: string
+}
+
+const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'DuitNow', 'Credit / Debit Card', 'Cheque', 'Online Banking']
 
 type FeeStatus = 'paid' | 'unpaid' | 'partial'
 
@@ -62,13 +76,34 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
   const [note, setNote] = useState(student.fee_note ?? '')
   const [amount, setAmount] = useState(student.fee_amount ?? '')
   const [dueDate, setDueDate] = useState(student.fee_due_date ?? '')
+  const [paymentMethod, setPaymentMethod] = useState('Cash')
+  const [servicePeriod, setServicePeriod] = useState(() => {
+    const now = new Date()
+    return now.toLocaleDateString('en-MY', { month: 'long', year: 'numeric' })
+  })
   const [expanded, setExpanded] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [receipts, setReceipts] = useState<PaymentReceipt[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [saving, setSaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [inviteSent, setInviteSent] = useState(false)
   const { lang } = useCmsLang()
   const p = CMS_T[lang].payments
+
+  async function loadHistory() {
+    if (receipts.length > 0) { setShowHistory(v => !v); return }
+    setLoadingHistory(true)
+    const { data } = await supabase
+      .from('payment_receipts')
+      .select('*')
+      .eq('student_id', student.id)
+      .order('issued_date', { ascending: false })
+    setReceipts((data ?? []) as PaymentReceipt[])
+    setLoadingHistory(false)
+    setShowHistory(true)
+  }
 
   const meta = STATUS_META[status]
   const overdue = isOverdue({ ...student, fee_status: status, fee_due_date: dueDate || student.fee_due_date })
@@ -131,21 +166,58 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
   async function handleDownload() {
     if (status === 'unpaid') return
     setDownloading(true)
-    const receiptNumber = `TT-${Date.now().toString().slice(-6)}`
-    const receiptDate = new Date().toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })
-    await downloadReceipt({
-      studentName: student.name,
-      tier: student.tier,
-      branch: student.branch,
-      subject: student.subject,
-      status: status as 'paid' | 'partial',
-      note: note || null,
-      amount,
-      teacherName: hrName,
-      receiptDate,
-      receiptNumber,
-    })
-    setDownloading(false)
+    try {
+      // Get sequential receipt number from DB
+      const { data: receiptNoData, error: rpcError } = await supabase.rpc('next_receipt_number')
+      if (rpcError || !receiptNoData) { toast.error('Failed to generate receipt number'); return }
+      const receiptNumber = receiptNoData as string
+      const receiptDate = new Date().toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })
+      const amountNum = parseFloat(amount) || 0
+
+      // Save to payment_receipts ledger
+      await supabase.from('payment_receipts').insert({
+        receipt_no:     receiptNumber,
+        student_id:     student.id,
+        student_name:   student.name,
+        subject:        student.subject,
+        tier:           student.tier,
+        branch:         student.branch,
+        amount:         amountNum || null,
+        fee_status:     status,
+        payment_method: paymentMethod || null,
+        service_period: servicePeriod || null,
+        note:           note || null,
+        issued_by:      hrName,
+        issued_date:    new Date().toISOString().slice(0, 10),
+      })
+
+      // Reload history if visible
+      if (showHistory) {
+        const { data } = await supabase
+          .from('payment_receipts')
+          .select('*')
+          .eq('student_id', student.id)
+          .order('issued_date', { ascending: false })
+        setReceipts((data ?? []) as PaymentReceipt[])
+      }
+
+      await downloadReceipt({
+        studentName: student.name,
+        tier: student.tier,
+        branch: student.branch,
+        subject: student.subject,
+        status: status as 'paid' | 'partial',
+        note: note || null,
+        amount,
+        paymentMethod,
+        servicePeriod,
+        teacherName: hrName,
+        receiptDate,
+        receiptNumber,
+      })
+    } finally {
+      setDownloading(false)
+    }
   }
 
   const amountLabel = status === 'unpaid' ? p.amount_owed : p.amount_paid
@@ -198,6 +270,11 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
               <MessageCircle className="w-4 h-4" />
             </a>
           )}
+          <button onClick={loadHistory} disabled={loadingHistory}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A5276] hover:bg-blue-50 transition-colors disabled:opacity-50"
+            title="Receipt history">
+            {loadingHistory ? <Loader2 className="w-4 h-4 animate-spin" /> : <History className="w-4 h-4" />}
+          </button>
           {(status === 'paid' || status === 'partial') && !expanded && (
             <button onClick={handleDownload} disabled={downloading}
               className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A5276] hover:bg-blue-50 transition-colors disabled:opacity-50"
@@ -265,6 +342,23 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
                 {parseFloat(amount).toLocaleString('en-MY', { style: 'currency', currency: 'MYR' })}
               </p>
             )}
+          </div>
+
+          {/* Payment method + service period */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-500">Payment Method</label>
+              <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-700 focus:outline-none focus:border-gray-400 transition-colors">
+                {PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-500">Service Period</label>
+              <input type="text" value={servicePeriod} onChange={e => setServicePeriod(e.target.value)}
+                placeholder="e.g. July 2026"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-700 focus:outline-none focus:border-gray-400 transition-colors placeholder:text-gray-300" />
+            </div>
           </div>
 
           {/* Due date */}
@@ -336,6 +430,41 @@ function StudentFeeRow({ student, hrName }: { student: HRStudent; hrName: string
               {isDirty ? p.save_changes : CMS_T[lang].common.save}
             </button>
           </div>
+
+          {/* Receipt history */}
+          {showHistory && (
+            <div className="border-t border-gray-200 pt-3 mt-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Receipt History</p>
+              {receipts.length === 0 ? (
+                <p className="text-xs text-gray-400 py-2 text-center">No receipts issued yet.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {receipts.map(r => (
+                    <div key={r.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white border border-gray-100 text-xs">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-800 tabular-nums">{r.receipt_no}</p>
+                        <p className="text-gray-400 mt-0.5">
+                          {r.issued_date} · {r.issued_by ?? '—'}{r.service_period ? ` · ${r.service_period}` : ''}
+                        </p>
+                      </div>
+                      {r.amount != null && (
+                        <span className="font-bold text-gray-700 tabular-nums shrink-0">
+                          RM {Number(r.amount).toFixed(2)}
+                        </span>
+                      )}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                        r.fee_status === 'paid'
+                          ? 'bg-green-50 text-green-700'
+                          : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {r.fee_status === 'paid' ? 'Paid' : 'Partial'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

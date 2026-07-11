@@ -6,12 +6,16 @@ import {
 import { saveAs } from 'file-saver'
 
 const C = {
-  dark:   '#111827',
-  mid:    '#374151',
-  muted:  '#6B7280',
-  light:  '#E5E7EB',
-  faint:  '#F9FAFB',
-  brand:  '#1A5276',
+  dark:   '#0F172A',
+  navy:   '#1A3557',
+  mid:    '#334155',
+  muted:  '#64748B',
+  light:  '#E2E8F0',
+  faint:  '#F8FAFC',
+  brand:  '#1A3557',
+  paid:   '#15803D',
+  partial:'#B45309',
+  rule:   '#CBD5E1',
 }
 
 const styles = StyleSheet.create({
@@ -20,234 +24,292 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: C.dark,
     backgroundColor: '#ffffff',
-    paddingTop: 48,
-    paddingBottom: 64,
-    paddingHorizontal: 52,
+    paddingTop: 52,
+    paddingBottom: 72,
+    paddingHorizontal: 56,
   },
 
-  /* ── Top row: FROM left / RECEIPT right ── */
-  topRow: {
+  /* ── Header band ── */
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 32,
+    paddingBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: C.navy,
+    marginBottom: 22,
   },
-  fromBlock: { flexDirection: 'column', gap: 2 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  logo: { width: 28, height: 28, marginRight: 7, borderRadius: 4 },
-  companyName: { fontFamily: 'Helvetica-Bold', fontSize: 13, color: C.brand },
-  fromLabel: { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.muted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 },
-  fromLine: { fontSize: 9, color: C.mid, lineHeight: 1.6 },
+  logoRow:     { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  logo:        { width: 32, height: 32, marginRight: 9, borderRadius: 4 },
+  companyName: { fontFamily: 'Helvetica-Bold', fontSize: 14, color: C.navy },
+  companyTag:  { fontSize: 8.5, color: C.muted, marginTop: 2 },
+  companyAddr: { fontSize: 8, color: C.muted, lineHeight: 1.65, marginTop: 6 },
 
-  receiptTitle: { fontFamily: 'Helvetica-Bold', fontSize: 36, color: C.dark, letterSpacing: -0.5 },
+  docTitle:    { fontFamily: 'Helvetica-Bold', fontSize: 26, color: C.navy, letterSpacing: 1.5 },
+  docSub:      { fontSize: 8, color: C.muted, textAlign: 'right', marginTop: 4, letterSpacing: 0.5 },
 
-  /* ── TO / meta row ── */
-  midRow: {
+  /* ── Meta block (receipt no / date / issued by) ── */
+  metaBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 28,
+    backgroundColor: C.faint,
+    borderWidth: 1,
+    borderColor: C.light,
+    borderRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 22,
   },
-  toBlock: {},
-  toLabel: { fontFamily: 'Helvetica-Bold', fontSize: 8, color: C.muted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 5 },
-  toName: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: C.dark, marginBottom: 2 },
-  toLine: { fontSize: 9, color: C.mid, lineHeight: 1.6 },
+  metaGroup:  { flexDirection: 'column', gap: 3 },
+  metaLabel:  { fontSize: 7, color: C.muted, letterSpacing: 1, textTransform: 'uppercase', fontFamily: 'Helvetica-Bold' },
+  metaValue:  { fontSize: 9.5, color: C.dark, fontFamily: 'Helvetica-Bold', marginTop: 2 },
 
-  metaTable: {},
-  metaRow: { flexDirection: 'row', marginBottom: 4 },
-  metaKey: { fontFamily: 'Helvetica-Bold', fontSize: 9, width: 90, color: C.mid },
-  metaVal: { fontSize: 9, color: C.dark },
+  /* ── Bill-to block ── */
+  billRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 22,
+  },
+  billBlock: { flex: 1 },
+  sectionLabel: { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 5 },
+  billName: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: C.dark, marginBottom: 3 },
+  billLine: { fontSize: 9, color: C.mid, lineHeight: 1.7 },
 
-  /* ── Line items table ── */
-  table: { marginBottom: 24 },
+  serviceBlock: { flex: 1, alignItems: 'flex-end' },
+  serviceLine:  { fontSize: 9, color: C.mid, lineHeight: 1.7, textAlign: 'right' },
+
+  /* ── Line items ── */
+  table: { marginBottom: 20 },
   tableHead: {
     flexDirection: 'row',
-    backgroundColor: C.dark,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-    marginBottom: 2,
+    backgroundColor: C.navy,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 3,
+    marginBottom: 1,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: C.light,
   },
   tableRowAlt: { backgroundColor: C.faint },
-  thQty:  { width: 36,  fontFamily: 'Helvetica-Bold', color: '#fff', fontSize: 8 },
-  thDesc: { flex: 1,    fontFamily: 'Helvetica-Bold', color: '#fff', fontSize: 8 },
-  thAmt:  { width: 72,  fontFamily: 'Helvetica-Bold', color: '#fff', fontSize: 8, textAlign: 'right' },
-  tdQty:  { width: 36,  fontSize: 9, color: C.mid },
-  tdDesc: { flex: 1,    fontSize: 9, color: C.dark },
-  tdAmt:  { width: 72,  fontSize: 9, color: C.dark, textAlign: 'right' },
+
+  thDesc:   { flex: 1,   fontFamily: 'Helvetica-Bold', color: '#fff', fontSize: 8 },
+  thPeriod: { width: 80, fontFamily: 'Helvetica-Bold', color: '#fff', fontSize: 8 },
+  thAmt:    { width: 72, fontFamily: 'Helvetica-Bold', color: '#fff', fontSize: 8, textAlign: 'right' },
+
+  tdDesc:   { flex: 1,   fontSize: 9, color: C.dark },
+  tdPeriod: { width: 80, fontSize: 9, color: C.mid },
+  tdAmt:    { width: 72, fontSize: 9, color: C.dark, textAlign: 'right' },
 
   /* ── Totals ── */
-  totalsBlock: { alignSelf: 'flex-end', width: 220 },
+  totalsOuter: { alignSelf: 'flex-end', width: 230, marginBottom: 16 },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: C.light,
   },
   totalRowFinal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    backgroundColor: C.dark,
-    borderRadius: 4,
-    marginTop: 2,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    backgroundColor: C.navy,
+    borderRadius: 3,
+    marginTop: 3,
   },
-  totalKey:      { fontSize: 9, color: C.mid },
-  totalVal:      { fontSize: 9, color: C.dark },
+  totalKey:      { fontSize: 8.5, color: C.muted },
+  totalVal:      { fontSize: 8.5, color: C.dark },
   totalKeyFinal: { fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#fff' },
   totalValFinal: { fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#fff' },
 
+  /* ── Payment method row ── */
+  methodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+    alignSelf: 'flex-end',
+    width: 230,
+  },
+  methodLabel: { fontSize: 8, color: C.muted },
+  methodValue: { fontSize: 8.5, color: C.dark, fontFamily: 'Helvetica-Bold' },
+
   /* ── Status stamp ── */
-  stampRow: { flexDirection: 'row', marginTop: 20, gap: 8, alignItems: 'center' },
+  stampRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   stamp: {
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 3,
     borderWidth: 2,
   },
-  stampText: { fontFamily: 'Helvetica-Bold', fontSize: 11, letterSpacing: 0.5 },
+  stampText: { fontFamily: 'Helvetica-Bold', fontSize: 12, letterSpacing: 1 },
 
   /* ── Note ── */
   noteBox: {
-    marginTop: 16,
     paddingHorizontal: 12, paddingVertical: 8,
     backgroundColor: C.faint,
-    borderRadius: 4,
+    borderRadius: 3,
     borderLeftWidth: 3,
-    borderLeftColor: C.light,
+    borderLeftColor: C.rule,
+    marginBottom: 10,
   },
-  noteLabel: { fontFamily: 'Helvetica-Bold', fontSize: 7.5, color: C.muted, marginBottom: 3, letterSpacing: 1, textTransform: 'uppercase' },
-  noteText:  { fontSize: 9, color: C.mid, fontFamily: 'Helvetica-Oblique' },
+  noteLabel: { fontFamily: 'Helvetica-Bold', fontSize: 7, color: C.muted, marginBottom: 3, letterSpacing: 1, textTransform: 'uppercase' },
+  noteText:  { fontSize: 8.5, color: C.mid, fontFamily: 'Helvetica-Oblique' },
 
   /* ── Footer ── */
   footer: {
     position: 'absolute',
-    bottom: 28,
-    left: 52,
-    right: 52,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    bottom: 30,
+    left: 56,
+    right: 56,
     borderTopWidth: 1,
     borderTopColor: C.light,
     paddingTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
-  footerText: { fontSize: 7.5, color: C.muted },
+  footerLeft:  { fontSize: 7.5, color: C.muted, lineHeight: 1.65 },
+  footerRight: { fontSize: 7.5, color: C.muted, textAlign: 'right', lineHeight: 1.65 },
 })
 
 export type ReceiptProps = {
-  studentName: string
-  tier: string
-  branch: string
-  subject: string
-  status: 'paid' | 'partial'
-  note: string | null
-  amount: string
-  teacherName: string
-  receiptDate: string
+  studentName:   string
+  tier:          string
+  branch:        string
+  subject:       string
+  status:        'paid' | 'partial'
+  note:          string | null
+  amount:        string
+  paymentMethod: string
+  servicePeriod: string
+  teacherName:   string
+  receiptDate:   string
   receiptNumber: string
-  logoUrl: string
+  logoUrl:       string
 }
 
 function ReceiptDocument(props: ReceiptProps) {
   const {
     studentName, tier, branch, subject, status, note,
-    amount, teacherName, receiptDate, receiptNumber, logoUrl,
+    amount, paymentMethod, servicePeriod,
+    teacherName, receiptDate, receiptNumber, logoUrl,
   } = props
 
-  const isPaid = status === 'paid'
-  const stampColor = isPaid ? '#1E8449' : '#B7770D'
-  const stampLabel = isPaid ? 'PAID' : 'PARTIAL PAYMENT'
-  const amountDisplay = amount ? `RM ${parseFloat(amount).toFixed(2)}` : '—'
+  const isPaid      = status === 'paid'
+  const stampColor  = isPaid ? C.paid : C.partial
+  const stampLabel  = isPaid ? 'PAID IN FULL' : 'PARTIAL PAYMENT'
+  const amountNum   = parseFloat(amount) || 0
+  const amountStr   = `RM ${amountNum.toFixed(2)}`
+  const descLine    = `${subject} Tuition Fee${tier && tier !== subject ? ` — ${tier}` : ''}${branch ? ` (${branch})` : ''}`
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
 
-        {/* ── Top row ── */}
-        <View style={styles.topRow}>
-          <View style={styles.fromBlock}>
-            <Text style={styles.fromLabel}>From</Text>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View>
             <View style={styles.logoRow}>
               <Image src={logoUrl} style={styles.logo} />
-              <Text style={styles.companyName}>Triple Tree Coding</Text>
+              <View>
+                <Text style={styles.companyName}>Triple Tree Enrichment Centre</Text>
+                <Text style={styles.companyTag}>Enrichment · Education · Excellence</Text>
+              </View>
             </View>
-            <Text style={styles.fromLine}>Enrichment Centre</Text>
-            <Text style={styles.fromLine}>Malaysia</Text>
+            <Text style={styles.companyAddr}>
+              Kuala Lumpur, Malaysia{'\n'}
+              enquiries@tripletree.edu.my
+            </Text>
           </View>
-          <Text style={styles.receiptTitle}>RECEIPT</Text>
-        </View>
-
-        {/* ── TO / meta row ── */}
-        <View style={styles.midRow}>
-          <View style={styles.toBlock}>
-            <Text style={styles.toLabel}>To</Text>
-            <Text style={styles.toName}>{studentName}</Text>
-            <Text style={styles.toLine}>{subject}</Text>
-            {tier !== subject && <Text style={styles.toLine}>{tier}</Text>}
-            <Text style={styles.toLine}>{branch}</Text>
-          </View>
-          <View style={styles.metaTable}>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaKey}>Receipt #:</Text>
-              <Text style={styles.metaVal}>{receiptNumber}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaKey}>Receipt Date:</Text>
-              <Text style={styles.metaVal}>{receiptDate}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaKey}>Issued By:</Text>
-              <Text style={styles.metaVal}>{teacherName}</Text>
-            </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.docTitle}>RECEIPT</Text>
+            <Text style={styles.docSub}>OFFICIAL PAYMENT RECEIPT</Text>
           </View>
         </View>
 
-        {/* ── Line items table ── */}
+        {/* ── Meta bar ── */}
+        <View style={styles.metaBar}>
+          <View style={styles.metaGroup}>
+            <Text style={styles.metaLabel}>Receipt No.</Text>
+            <Text style={styles.metaValue}>{receiptNumber}</Text>
+          </View>
+          <View style={styles.metaGroup}>
+            <Text style={styles.metaLabel}>Date of Issue</Text>
+            <Text style={styles.metaValue}>{receiptDate}</Text>
+          </View>
+          <View style={styles.metaGroup}>
+            <Text style={styles.metaLabel}>Service Period</Text>
+            <Text style={styles.metaValue}>{servicePeriod || '—'}</Text>
+          </View>
+          <View style={styles.metaGroup}>
+            <Text style={styles.metaLabel}>Received By</Text>
+            <Text style={styles.metaValue}>{teacherName}</Text>
+          </View>
+        </View>
+
+        {/* ── Bill to / Class details ── */}
+        <View style={styles.billRow}>
+          <View style={styles.billBlock}>
+            <Text style={styles.sectionLabel}>Received From</Text>
+            <Text style={styles.billName}>{studentName}</Text>
+            <Text style={styles.billLine}>{subject}</Text>
+            {tier && tier !== subject && <Text style={styles.billLine}>{tier}</Text>}
+            <Text style={styles.billLine}>{branch}</Text>
+          </View>
+          <View style={styles.serviceBlock}>
+            <Text style={styles.sectionLabel}>Payment Method</Text>
+            <Text style={[styles.serviceLine, { fontFamily: 'Helvetica-Bold', color: C.dark }]}>
+              {paymentMethod || 'Cash'}
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Line items ── */}
         <View style={styles.table}>
           <View style={styles.tableHead}>
-            <Text style={styles.thQty}>QTY</Text>
             <Text style={styles.thDesc}>Description</Text>
-            <Text style={styles.thAmt}>Amount</Text>
+            <Text style={styles.thPeriod}>Period</Text>
+            <Text style={styles.thAmt}>Amount (RM)</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tdQty}>1</Text>
-            <Text style={styles.tdDesc}>
-              {subject} Tuition Fee{tier && tier !== subject ? ` — ${tier}` : ''}{branch ? ` (${branch})` : ''}
-            </Text>
-            <Text style={styles.tdAmt}>{amountDisplay}</Text>
+            <Text style={styles.tdDesc}>{descLine}</Text>
+            <Text style={styles.tdPeriod}>{servicePeriod || '—'}</Text>
+            <Text style={styles.tdAmt}>{amountNum.toFixed(2)}</Text>
           </View>
-          {/* empty rows for visual padding */}
-          {[1, 2, 3].map(i => (
+          {[1, 2].map(i => (
             <View key={i} style={[styles.tableRow, i % 2 === 0 ? styles.tableRowAlt : {}]}>
-              <Text style={styles.tdQty}> </Text>
               <Text style={styles.tdDesc}> </Text>
+              <Text style={styles.tdPeriod}> </Text>
               <Text style={styles.tdAmt}> </Text>
             </View>
           ))}
         </View>
 
         {/* ── Totals ── */}
-        <View style={styles.totalsBlock}>
+        <View style={styles.totalsOuter}>
           <View style={styles.totalRow}>
             <Text style={styles.totalKey}>Subtotal</Text>
-            <Text style={styles.totalVal}>{amountDisplay}</Text>
+            <Text style={styles.totalVal}>{amountStr}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalKey}>SST (Exempt)</Text>
+            <Text style={styles.totalVal}>—</Text>
           </View>
           <View style={styles.totalRowFinal}>
-            <Text style={styles.totalKeyFinal}>Total</Text>
-            <Text style={styles.totalValFinal}>{amountDisplay}</Text>
+            <Text style={styles.totalKeyFinal}>Total Received</Text>
+            <Text style={styles.totalValFinal}>{amountStr}</Text>
           </View>
         </View>
 
-        {/* ── Status stamp + note ── */}
+        {/* ── Status stamp ── */}
         <View style={styles.stampRow}>
           <View style={[styles.stamp, { borderColor: stampColor }]}>
             <Text style={[styles.stampText, { color: stampColor }]}>{stampLabel}</Text>
@@ -256,16 +318,21 @@ function ReceiptDocument(props: ReceiptProps) {
 
         {note && (
           <View style={styles.noteBox}>
-            <Text style={styles.noteLabel}>Note</Text>
+            <Text style={styles.noteLabel}>Remarks</Text>
             <Text style={styles.noteText}>{note}</Text>
           </View>
         )}
 
         {/* ── Footer ── */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Triple Tree Coding</Text>
-          <Text style={styles.footerText}>This is a computer-generated receipt.</Text>
-          <Text style={styles.footerText}>{receiptDate}</Text>
+          <Text style={styles.footerLeft}>
+            Triple Tree Enrichment Centre{'\n'}
+            This is a computer-generated official receipt. No signature required.
+          </Text>
+          <Text style={styles.footerRight}>
+            {receiptNumber}{'\n'}
+            {receiptDate}
+          </Text>
         </View>
 
       </Page>
@@ -276,5 +343,5 @@ function ReceiptDocument(props: ReceiptProps) {
 export async function downloadReceipt(props: Omit<ReceiptProps, 'logoUrl'>) {
   const logoUrl = `${window.location.origin}/logo.png`
   const blob = await pdf(<ReceiptDocument {...props} logoUrl={logoUrl} />).toBlob()
-  saveAs(blob, `receipt-${props.studentName.replace(/\s+/g, '-')}-${props.receiptNumber}.pdf`)
+  saveAs(blob, `receipt-${props.receiptNumber.replace(/\//g, '-')}-${props.studentName.replace(/\s+/g, '-')}.pdf`)
 }

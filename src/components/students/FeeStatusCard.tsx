@@ -64,21 +64,45 @@ export function FeeStatusCard({
   async function handleDownload() {
     if (status === 'unpaid') return
     setDownloading(true)
-    const receiptNumber = `TT-${Date.now().toString().slice(-6)}`
-    const receiptDate = new Date().toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })
-    await downloadReceipt({
-      studentName: studentName ?? 'Student',
-      tier: tier ?? '—',
-      branch: branch ?? '—',
-      subject: subject ?? '—',
-      status: status as 'paid' | 'partial',
-      note: note || null,
-      amount: '',
-      teacherName: teacherName ?? 'Teacher',
-      receiptDate,
-      receiptNumber,
-    })
-    setDownloading(false)
+    try {
+      const { data: receiptNoData } = await supabase.rpc('next_receipt_number')
+      const receiptNumber = (receiptNoData as string) ?? `TTE/${new Date().getFullYear()}/????`
+      const receiptDate = new Date().toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })
+      const servicePeriod = new Date().toLocaleDateString('en-MY', { month: 'long', year: 'numeric' })
+
+      await supabase.from('payment_receipts').insert({
+        receipt_no:     receiptNumber,
+        student_id:     studentId,
+        student_name:   studentName ?? 'Student',
+        subject:        subject ?? null,
+        tier:           tier ?? null,
+        branch:         branch ?? null,
+        amount:         null,
+        fee_status:     status,
+        payment_method: 'Cash',
+        service_period: servicePeriod,
+        note:           note || null,
+        issued_by:      teacherName ?? null,
+        issued_date:    new Date().toISOString().slice(0, 10),
+      })
+
+      await downloadReceipt({
+        studentName: studentName ?? 'Student',
+        tier: tier ?? '—',
+        branch: branch ?? '—',
+        subject: subject ?? '—',
+        status: status as 'paid' | 'partial',
+        note: note || null,
+        amount: '',
+        paymentMethod: 'Cash',
+        servicePeriod,
+        teacherName: teacherName ?? 'Teacher',
+        receiptDate,
+        receiptNumber,
+      })
+    } finally {
+      setDownloading(false)
+    }
   }
 
   if (!editing) {
